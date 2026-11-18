@@ -2,12 +2,16 @@ import 'package:material_ui/material_ui.dart';
 
 import '../modele/taches.dart';
 
-/// Affichage d'une tâche : son état, son titre et sa priorité.
-/// Ne possède aucun état : il affiche la tâche qu'on lui donne.
+/// Affichage d'une tâche : une case à cocher, son titre et sa priorité.
+/// Ne possède aucun état : un appui est signalé à l'écran par [surBascule],
+/// et c'est l'écran qui remplace la tâche dans son état.
 class LigneTache extends StatelessWidget {
-  const LigneTache({super.key, required this.tache});
+  const LigneTache({super.key, required this.tache, required this.surBascule});
 
   final Tache tache;
+
+  /// Appelée quand l'utilisateur demande à marquer la tâche faite ou à faire.
+  final VoidCallback surBascule;
 
   @override
   Widget build(BuildContext context) {
@@ -17,9 +21,10 @@ class LigneTache extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
-        leading: Icon(
-          tache.faite ? Icons.check_circle : Icons.radio_button_unchecked,
-          color: tache.faite ? couleurs.primary : couleurs.outline,
+        onTap: surBascule,
+        leading: Checkbox(
+          value: tache.faite,
+          onChanged: (_) => surBascule(),
         ),
         title: Text(
           tache.titre,
@@ -37,6 +42,7 @@ class LigneTache extends StatelessWidget {
 }
 
 /// Pastille colorée affichant le libellé de la priorité.
+/// Privée : elle ne sert qu'à LigneTache, dans ce fichier.
 class _BadgePriorite extends StatelessWidget {
   const _BadgePriorite({required this.priorite});
 
@@ -46,6 +52,8 @@ class _BadgePriorite extends StatelessWidget {
   Widget build(BuildContext context) {
     final couleurs = Theme.of(context).colorScheme;
 
+    // Pas de cas par défaut : un nouveau niveau de priorité
+    // provoquerait une erreur de compilation ici.
     final (fond, texte) = switch (priorite) {
       Priorite.haute => (couleurs.errorContainer, couleurs.onErrorContainer),
       Priorite.normale =>

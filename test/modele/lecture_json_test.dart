@@ -131,4 +131,44 @@ void main() {
       );
     });
   });
+
+  group('tachesDepuisTexteJson', () {
+    test('lit une liste de tâches', () {
+      final taches = tachesDepuisTexteJson('''
+        [
+          {"id": "t1", "title": "A", "priority": "high", "done": true},
+          {"id": "t2", "title": "B", "priority": "low", "done": false,
+           "due": "2026-11-20"}
+        ]
+      ''');
+
+      expect([for (final t in taches) t.id], ['t1', 't2']);
+      expect(taches[1].echeance, EcheanceDate(DateTime(2026, 11, 20)));
+    });
+
+    test('une liste vide donne une liste vide', () {
+      expect(tachesDepuisTexteJson('[]'), isEmpty);
+    });
+
+    test('rejette un texte qui n\'est pas du JSON', () {
+      expect(() => tachesDepuisTexteJson('pas du json'),
+          throwsFormatException);
+    });
+
+    test('rejette un JSON qui n\'est pas une liste', () {
+      expect(() => tachesDepuisTexteJson('{"id": "t1"}'),
+          throwsFormatException);
+    });
+
+    test('rejette un élément qui n\'est pas un objet', () {
+      expect(() => tachesDepuisTexteJson('[42]'), throwsFormatException);
+    });
+
+    test('rejette une tâche invalide dans la liste', () {
+      expect(
+              () => tachesDepuisTexteJson(
+              '[{"id": "t1", "title": "A", "priority": "urgent", "done": true}]'),
+          throwsFormatException);
+    });
+  });
 }

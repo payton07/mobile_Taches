@@ -8,4 +8,5 @@ library;
 export 'echeance.dart';
 export 'lecture_json.dart';
 export 'priorite.dart';
+export 'regles_echeance.dart';
 export 'tache.dart';

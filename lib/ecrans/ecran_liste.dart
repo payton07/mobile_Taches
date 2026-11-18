@@ -31,6 +31,17 @@ class _EcranListeState extends State<EcranListe> {
     });
   }
 
+  /// Remplace la tâche [id] par une copie dont l'état est inversé.
+  /// La tâche d'origine n'est pas modifiée : une nouvelle liste est construite.
+  void _basculer(String id) {
+    setState(() {
+      _taches = [
+        for (final tache in _taches)
+          if (tache.id == id) tache.copieAvec(faite: !tache.faite) else tache,
+      ];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final (:faites, :total) = bilan(_taches);
@@ -47,7 +58,11 @@ class _EcranListeState extends State<EcranListe> {
               itemCount: _taches.length,
               itemBuilder: (context, index) {
                 final tache = _taches[index];
-                return LigneTache(key: ValueKey(tache.id), tache: tache);
+                return LigneTache(
+                  key: ValueKey(tache.id),
+                  tache: tache,
+                  surBascule: () => _basculer(tache.id),
+                );
               },
             ),
           ),

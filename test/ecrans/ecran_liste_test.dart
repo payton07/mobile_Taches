@@ -42,4 +42,26 @@ void main() {
     expect(find.text('Nouvelle tâche 1'), findsOneWidget);
     expect(find.text('Nouvelle tâche 2'), findsOneWidget);
   });
+
+  testWidgets('cocher puis décocher une tâche met à jour le compteur',
+          (tester) async {
+        await afficherEcran(tester);
+        final caseRelire = find.descendant(
+          of: find.widgetWithText(ListTile, 'Relire le CM 01'),
+          matching: find.byType(Checkbox),
+        );
+        expect(find.text('5 à faire'), findsOneWidget);
+
+        await tester.tap(caseRelire);
+        await tester.pump();
+
+        expect(find.text('4 à faire'), findsOneWidget);
+        expect(tester.widget<Checkbox>(caseRelire).value, isTrue);
+
+        await tester.tap(caseRelire);
+        await tester.pump();
+
+        expect(find.text('5 à faire'), findsOneWidget);
+        expect(tester.widget<Checkbox>(caseRelire).value, isFalse);
+      });
 }

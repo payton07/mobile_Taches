@@ -1,6 +1,7 @@
 import 'echeance.dart';
 import 'priorite.dart';
 import 'tache.dart';
+import 'dart:convert';
 
 /// Priorité désignée par un code JSON, ou `null` si le code est inconnu.
 /// La comparaison est sensible à la casse : `'High'` renvoie `null`.
@@ -91,4 +92,25 @@ DateTime _dateStricte(String texte, String cle) {
   }
   throw FormatException(
       '"$cle" doit être une date AAAA-MM-JJ existante', texte);
+}
+
+
+/// Lit un texte JSON contenant une liste de tâches.
+///
+/// Lève une [FormatException] si le texte n'est pas du JSON valide, si ce
+/// n'est pas une liste, si un élément n'est pas un objet JSON, ou si une
+/// tâche ne respecte pas les règles de [tacheDepuisJson].
+List<Tache> tachesDepuisTexteJson(String texte) {
+  final donnees = jsonDecode(texte);
+  if (donnees is! List) {
+    throw FormatException('Le JSON doit être une liste de tâches', texte);
+  }
+  return [
+    for (final element in donnees)
+      switch (element) {
+        Map<String, Object?> json => tacheDepuisJson(json),
+        final autre =>
+        throw FormatException('Chaque tâche doit être un objet JSON', autre),
+      },
+  ];
 }

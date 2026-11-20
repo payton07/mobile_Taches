@@ -9,5 +9,6 @@ export 'echeance.dart';
 export 'lecture_json.dart';
 export 'priorite.dart';
 export 'regles_echeance.dart';
+export 'filtre.dart';
 export 'liste_taches.dart';
 export 'tache.dart';

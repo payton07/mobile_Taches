@@ -46,30 +46,41 @@ class _EcranListeState extends State<EcranListe> {
     });
   }
 
-  /// Remplace la tâche [id] par une copie dont l'état est inversé.
-  void _basculer(String id) {
-    setState(() {
-      _taches = [
-        for (final tache in _taches)
-          if (tache.id == id) tache.copieAvec(faite: !tache.faite) else tache,
-      ];
-    });
-  }
 
   void _changerFiltre(Filtre filtre) {
     setState(() => _filtre = filtre);
   }
 
-  /// Ouvre l'écran de détail de [tache], par-dessus la liste.
-  void _ouvrir(Tache tache) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
+  /// Remplace, dans l'état, la tâche de même identifiant que [modifiee].
+  /// Seul point de l'écran qui remplace une tâche.
+  void _remplacer(Tache modifiee) {
+    setState(() {
+      _taches = [
+        for (final tache in _taches)
+          if (tache.id == modifiee.id) modifiee else tache,
+      ];
+    });
+  }
+
+  /// Inverse l'état de [tache] (case à cocher de la liste).
+  void _basculer(Tache tache) {
+    _remplacer(tache.copieAvec(faite: !tache.faite));
+  }
+
+  /// Ouvre le détail de [tache] et applique la tâche qu'il renvoie, s'il en
+  /// renvoie une. Un simple retour renvoie null : rien ne change.
+  Future<void> _ouvrir(Tache tache) async {
+    final modifiee = await Navigator.of(context).push<Tache>(
+      MaterialPageRoute(
         builder: (_) => EcranDetail(
           tache: tache,
           aujourdhui: widget.maintenant(),
         ),
       ),
     );
+    // Après un await, l'écran a pu être retiré : plus de setState possible.
+    if (modifiee == null || !mounted) return;
+    _remplacer(modifiee);
   }
 
 
@@ -109,7 +120,7 @@ class _EcranListeState extends State<EcranListe> {
                       key: ValueKey(tache.id),
                       tache: tache,
                       aujourdhui: aujourdhui,
-                      surBascule: () => _basculer(tache.id),
+                      surBascule: () => _basculer(tache),
                       surOuverture: () => _ouvrir(tache),
                     );
                   },

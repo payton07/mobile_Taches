@@ -153,4 +153,29 @@ void main() {
           expect(bascules, 0);
         });
   });
+
+  group('mise en page', () {
+    testWidgets('un titre très long tient sur une ligne, terminé par « … »',
+            (tester) async {
+          tester.view.physicalSize = const Size(360, 640);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          final titreLong = 'Un titre vraiment très long ' * 10;
+
+          await afficherTuile(
+            tester,
+            Tache(
+              id: 't1',
+              titre: titreLong,
+              priorite: Priorite.normale,
+              echeance: EcheanceHebdomadaire(DateTime.wednesday),
+            ),
+          );
+
+          final titre = tester.widget<Text>(find.text(titreLong));
+          expect(titre.maxLines, 1);
+          expect(titre.overflow, TextOverflow.ellipsis);
+          expect(tester.takeException(), isNull); // aucun débordement
+        });
+  });
 }

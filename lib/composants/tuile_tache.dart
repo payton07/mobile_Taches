@@ -45,6 +45,9 @@ class TuileTache extends StatelessWidget {
         ),
         title: Text(
           tache.titre,
+          // Une seule ligne, terminée par « … » si le titre est trop long.
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: tache.faite
               ? textes.bodyLarge?.copyWith(
             decoration: TextDecoration.lineThrough,

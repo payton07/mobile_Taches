@@ -15,10 +15,25 @@ Future<void> afficherEcran(WidgetTester tester) => tester.pumpWidget(
   ),
 );
 
+/// Simule un écran de [largeur] pixels, rétabli à la fin du test.
+void fixerLargeur(WidgetTester tester, double largeur) {
+  tester.view.physicalSize = Size(largeur, 800);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+}
+
 /// Touche le segment [libelle] du sélecteur de filtre.
 Future<void> choisirFiltre(WidgetTester tester, String libelle) async {
   await tester.tap(find.text(libelle));
   await tester.pump();
+}
+
+/// Touche le bouton « Ajouter » [fois] fois.
+Future<void> ajouter(WidgetTester tester, {int fois = 1}) async {
+  for (var i = 0; i < fois; i++) {
+    await tester.tap(find.text('Ajouter'));
+    await tester.pump();
+  }
 }
 
 /// La case à cocher de la tuile qui affiche [titre].
@@ -36,8 +51,9 @@ Color? couleurDe(WidgetTester tester, String texte) =>
     tester.widget<Text>(find.text(texte)).style?.color;
 
 void main() {
-
-
+  // -------------------------------------------------------------------------
+  // B1 : affichage et ajout
+  // -------------------------------------------------------------------------
   group('B1 : affichage et ajout', () {
     testWidgets('affiche le compteur et les tâches d\'exemple',
             (tester) async {
@@ -54,8 +70,7 @@ void main() {
             (tester) async {
           await afficherEcran(tester);
 
-          await tester.tap(find.text('Ajouter'));
-          await tester.pump();
+          await ajouter(tester);
 
           expect(find.text('6 à faire'), findsOneWidget);
           // La nouvelle tâche est en bas de la liste : on fait défiler jusqu'à elle.
@@ -66,10 +81,7 @@ void main() {
     testWidgets('deux ajouts donnent deux tâches distinctes', (tester) async {
       await afficherEcran(tester);
 
-      await tester.tap(find.text('Ajouter'));
-      await tester.pump();
-      await tester.tap(find.text('Ajouter'));
-      await tester.pump();
+      await ajouter(tester, fois: 2);
 
       expect(find.text('7 à faire'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('Nouvelle tâche 2'), 100);
@@ -78,8 +90,9 @@ void main() {
     });
   });
 
-
-
+  // -------------------------------------------------------------------------
+  // B2 : cocher une tâche
+  // -------------------------------------------------------------------------
   group('B2 : cocher une tâche', () {
     testWidgets('cocher puis décocher une tâche met à jour le compteur',
             (tester) async {
@@ -101,8 +114,9 @@ void main() {
         });
   });
 
-
-
+  // -------------------------------------------------------------------------
+  // C1 : filtrer la liste
+  // -------------------------------------------------------------------------
   group('C1 : filtrer la liste', () {
     testWidgets('« Toutes » est le filtre par défaut', (tester) async {
       await afficherEcran(tester);
@@ -155,7 +169,7 @@ void main() {
           await tester.pump();
 
           expect(find.text('Installer Flutter'), findsNothing);
-          expect(find.text('Aucune tâche'), findsOneWidget);
+          expect(find.text('Aucune tâche faite'), findsOneWidget);
           expect(find.text('6 à faire'), findsOneWidget);
 
           await choisirFiltre(tester, 'À faire');
@@ -163,8 +177,9 @@ void main() {
         });
   });
 
-
-
+  // -------------------------------------------------------------------------
+  // C2 : tuile de tâche
+  // -------------------------------------------------------------------------
   group('C2 : tuile de tâche', () {
     testWidgets('affiche le libellé de l\'échéance de chaque tâche',
             (tester) async {
@@ -198,5 +213,73 @@ void main() {
       expect(
           tester.widget<Checkbox>(caseDe('Relire le CM 01')).value, isFalse);
     });
+  });
+
+  // -------------------------------------------------------------------------
+  // C3 : mise en page, contraintes et cas limites
+  // -------------------------------------------------------------------------
+  group('C3 : mise en page, contraintes et cas limites', () {
+    testWidgets('le compteur et le filtre restent fixes, seule la liste défile',
+            (tester) async {
+          await afficherEcran(tester);
+          await ajouter(tester, fois: 5); // assez de tâches pour devoir défiler
+
+          final compteurAvant = tester.getTopLeft(find.text('10 à faire'));
+          final filtreAvant =
+          tester.getTopLeft(find.byType(SegmentedButton<Filtre>));
+
+          await tester.drag(find.byType(ListView), const Offset(0, -300));
+          await tester.pump();
+
+          final defilement = tester
+              .state<ScrollableState>(find.descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          ))
+              .position
+              .pixels;
+          expect(defilement, greaterThan(0)); // la liste a bien défilé…
+          expect(tester.getTopLeft(find.text('10 à faire')), compteurAvant);
+          expect(tester.getTopLeft(find.byType(SegmentedButton<Filtre>)),
+              filtreAvant); // … mais pas l'en-tête
+        });
+
+    testWidgets('le message vide est centré et dépend du filtre',
+            (tester) async {
+          fixerLargeur(tester, 800);
+          await afficherEcran(tester);
+          await choisirFiltre(tester, 'Faites');
+          await tester.tap(caseDe('Installer Flutter'));
+          await tester.pump();
+
+          final message = find.text('Aucune tâche faite');
+          expect(message, findsOneWidget);
+          expect(tester.getCenter(message).dx, 400); // centré horizontalement
+        });
+
+    for (final largeur in [360.0, 1280.0]) {
+      testWidgets('aucun débordement à ${largeur.toInt()} pixels de large',
+              (tester) async {
+            fixerLargeur(tester, largeur);
+            await afficherEcran(tester);
+            expect(tester.takeException(), isNull);
+
+            for (final filtre in ['À faire', 'Faites', 'Toutes']) {
+              await choisirFiltre(tester, filtre);
+              expect(tester.takeException(), isNull, reason: filtre);
+            }
+
+            await ajouter(tester, fois: 3);
+            expect(tester.takeException(), isNull);
+          });
+    }
+
+    testWidgets('sur grand écran, le contenu ne dépasse pas 720 pixels',
+            (tester) async {
+          fixerLargeur(tester, 1280);
+          await afficherEcran(tester);
+
+          expect(tester.getSize(find.byType(ListView)).width, 720);
+        });
   });
 }

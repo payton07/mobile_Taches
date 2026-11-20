@@ -21,10 +21,13 @@ class CompteurTaches extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
+            Wrap(
+              // Côte à côte quand la place suffit ; sinon, le second texte
+              // passe à la ligne au lieu de déborder.
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.end,
+              spacing: 8,
+              runSpacing: 2,
               children: [
                 Text(
                   '$restantes à faire',

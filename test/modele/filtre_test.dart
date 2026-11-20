@@ -32,4 +32,10 @@ void main() {
     expect([for (final f in Filtre.values) f.libelle],
         ['Toutes', 'À faire', 'Faites']);
   });
+
+  test('chaque filtre a son message quand il ne retient rien', () {
+    expect(Filtre.toutes.messageVide, 'Aucune tâche');
+    expect(Filtre.aFaire.messageVide, 'Aucune tâche à faire');
+    expect(Filtre.faites.messageVide, 'Aucune tâche faite');
+  });
 }

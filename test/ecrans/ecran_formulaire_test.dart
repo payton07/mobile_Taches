@@ -179,4 +179,121 @@ void main() {
 
     expect(tester.takeException(), isNull);
   });
+
+  // -------------------------------------------------------------------------
+  // E2 : valider les saisies
+  // -------------------------------------------------------------------------
+  group('E2 : valider les saisies', () {
+    /// Touche « Enregistrer », après l'avoir fait défiler à l'écran.
+    Future<void> enregistrer(WidgetTester tester) async {
+      await tester.ensureVisible(find.text('Enregistrer'));
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('aucun message à l\'ouverture du formulaire', (tester) async {
+      await ouvrirFormulaire(tester, (_) {});
+
+      expect(find.text('Le titre est obligatoire'), findsNothing);
+    });
+
+    testWidgets('un titre fait d\'espaces est refusé, le formulaire reste '
+        'ouvert', (tester) async {
+      var ferme = false;
+      await ouvrirFormulaire(tester, (_) => ferme = true);
+
+      await tester.enterText(champ('Titre'), '    ');
+      await enregistrer(tester);
+
+      expect(find.text('Le titre est obligatoire'), findsOneWidget);
+      expect(find.byType(EcranFormulaire), findsOneWidget);
+      expect(ferme, isFalse);
+    });
+
+    testWidgets('un titre de 61 caractères est refusé, message sous le champ', (
+      tester,
+    ) async {
+      var ferme = false;
+      await ouvrirFormulaire(tester, (_) => ferme = true);
+
+      await tester.enterText(champ('Titre'), 'a' * 61);
+      await enregistrer(tester);
+
+      final message = find.text('Le titre fait 60 caractères au plus');
+      expect(message, findsOneWidget);
+      // Le message appartient bien au champ du titre.
+      expect(
+        find.descendant(of: champ('Titre'), matching: message),
+        findsOneWidget,
+      );
+      expect(ferme, isFalse);
+    });
+
+    testWidgets('un titre de 60 caractères est accepté', (tester) async {
+      Tache? recue;
+      await ouvrirFormulaire(tester, (tache) => recue = tache);
+
+      await tester.enterText(champ('Titre'), 'a' * 60);
+      await enregistrer(tester);
+
+      expect(recue?.titre, 'a' * 60);
+    });
+
+    testWidgets('une note de 201 caractères est refusée', (tester) async {
+      var ferme = false;
+      await ouvrirFormulaire(tester, (_) => ferme = true);
+
+      await tester.enterText(champ('Titre'), 'Titre valide');
+      await tester.enterText(champ('Note (facultative)'), 'n' * 201);
+      await enregistrer(tester);
+
+      expect(find.text('La note fait 200 caractères au plus'), findsOneWidget);
+      expect(ferme, isFalse);
+    });
+
+    testWidgets('les espaces de bord sont retirés du titre et de la note', (
+      tester,
+    ) async {
+      Tache? recue;
+      await ouvrirFormulaire(tester, (tache) => recue = tache);
+
+      await tester.enterText(champ('Titre'), '   Réviser   ');
+      await tester.enterText(champ('Note (facultative)'), '  chapitre 3  ');
+      await enregistrer(tester);
+
+      expect(recue?.titre, 'Réviser');
+      expect(recue?.note, 'chapitre 3');
+    });
+
+    testWidgets('une note faite d\'espaces donne une tâche sans note', (
+      tester,
+    ) async {
+      Tache? recue;
+      await ouvrirFormulaire(tester, (tache) => recue = tache);
+
+      await tester.enterText(champ('Titre'), 'Sans note');
+      await tester.enterText(champ('Note (facultative)'), '    ');
+      await enregistrer(tester);
+
+      expect(recue, isNotNull);
+      expect(recue!.note, isNull);
+    });
+
+    testWidgets('après un refus, le message disparaît dès la correction', (
+      tester,
+    ) async {
+      Tache? recue;
+      await ouvrirFormulaire(tester, (tache) => recue = tache);
+
+      await enregistrer(tester);
+      expect(find.text('Le titre est obligatoire'), findsOneWidget);
+
+      await tester.enterText(champ('Titre'), 'Corrigé');
+      await tester.pump();
+      expect(find.text('Le titre est obligatoire'), findsNothing);
+
+      await enregistrer(tester);
+      expect(recue?.titre, 'Corrigé');
+    });
+  });
 }

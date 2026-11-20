@@ -1,4 +1,5 @@
 import 'echeance.dart';
+import 'jour.dart';
 import 'tache.dart';
 
 /// Texte affichable d'une échéance :
@@ -30,16 +31,7 @@ const _nomsJours = [
 bool estEnRetard(Tache tache, {required DateTime aujourdhui}) {
   if (tache.faite) return false;
   return switch (tache.echeance) {
-    EcheanceDate(:final annee, :final mois, :final jour) => _jour(
-      annee,
-      mois,
-      jour,
-    ).isBefore(_jour(aujourdhui.year, aujourdhui.month, aujourdhui.day)),
+    final EcheanceDate date => estAvantAujourdhui(date, aujourdhui),
     SansEcheance() || EcheanceHebdomadaire() => false,
   };
 }
-
-/// Un jour calendaire à minuit UTC : comparer deux de ces valeurs revient à
-/// comparer les jours, sans que l'heure ni l'heure d'été n'interviennent.
-DateTime _jour(int annee, int mois, int jour) =>
-    DateTime.utc(annee, mois, jour);

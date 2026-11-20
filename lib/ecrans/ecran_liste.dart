@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../composants/composants.dart';
 import '../donnees/exemples.dart';
 import '../modele/taches.dart';
+import 'ecran_detail.dart';
 
 /// Écran de liste : affiche les tâches, permet d'en ajouter, de les cocher
 /// et de filtrer l'affichage.
@@ -59,8 +60,17 @@ class _EcranListeState extends State<EcranListe> {
     setState(() => _filtre = filtre);
   }
 
-  /// Ouvrira l'écran de détail de la tâche [id] (partie D).
-  void _ouvrir(String id) {}
+  /// Ouvre l'écran de détail de [tache], par-dessus la liste.
+  void _ouvrir(Tache tache) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => EcranDetail(
+          tache: tache,
+          aujourdhui: widget.maintenant(),
+        ),
+      ),
+    );
+  }
 
 
 
@@ -100,7 +110,7 @@ class _EcranListeState extends State<EcranListe> {
                       tache: tache,
                       aujourdhui: aujourdhui,
                       surBascule: () => _basculer(tache.id),
-                      surOuverture: () => _ouvrir(tache.id),
+                      surOuverture: () => _ouvrir(tache),
                     );
                   },
                 ),

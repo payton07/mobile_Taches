@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:mes_taches/ecrans/ecran_liste.dart';
 import 'package:mes_taches/modele/taches.dart';
+import 'package:mes_taches/composants/composants.dart';
+import 'package:mes_taches/ecrans/ecran_detail.dart';
 
 // ---------------------------------------------------------------------------
 // Utilitaires
@@ -207,7 +209,9 @@ void main() {
       await afficherEcran(tester);
 
       await tester.tap(find.text('Relire le CM 01'));
-      await tester.pump();
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
 
       expect(find.text('5 à faire'), findsOneWidget);
       expect(
@@ -281,5 +285,44 @@ void main() {
 
           expect(tester.getSize(find.byType(ListView)).width, 720);
         });
+  });
+
+  // -------------------------------------------------------------------------
+  // D1 : écran de détail
+  // -------------------------------------------------------------------------
+  group('D1 : écran de détail', () {
+    testWidgets('toucher une tâche ouvre son détail', (tester) async {
+      await afficherEcran(tester);
+
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EcranDetail), findsOneWidget);
+      expect(find.text('records, patterns, classes scellées'), findsOneWidget);
+    });
+
+    testWidgets('le bouton retour ramène à la liste', (tester) async {
+      await afficherEcran(tester);
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EcranDetail), findsNothing);
+      expect(find.text('5 à faire'), findsOneWidget);
+    });
+
+    testWidgets('avec un filtre actif, ouvre la bonne tâche', (tester) async {
+      await afficherEcran(tester);
+      await choisirFiltre(tester, 'À faire');
+
+      // Deuxième tuile affichée : t3, et non t2 (deuxième de la liste complète).
+      await tester.tap(find.byType(TuileTache).at(1));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Faire les courses'), findsOneWidget);
+      expect(find.text('pain, lait, café'), findsOneWidget);
+    });
   });
 }

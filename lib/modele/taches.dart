@@ -12,3 +12,4 @@ export 'regles_echeance.dart';
 export 'filtre.dart';
 export 'liste_taches.dart';
 export 'tache.dart';
+export 'validation.dart';

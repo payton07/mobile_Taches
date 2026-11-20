@@ -475,4 +475,45 @@ void main() {
       expect(cases.map((c) => c.value), [false, true]);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // E2 : valider les saisies (point de contrôle E)
+  // -------------------------------------------------------------------------
+  group('E2 : valider les saisies', () {
+    testWidgets('point de contrôle E : formulaire vide, titre de 61 '
+        'caractères, puis tâche valide avec échéance', (tester) async {
+      await afficherEcran(tester);
+      await tester.tap(find.text('Ajouter'));
+      await tester.pumpAndSettle();
+      final titre = find.widgetWithText(TextFormField, 'Titre');
+
+      // 1. Formulaire vide : un message, et rien ne se ferme.
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+      expect(find.text('Le titre est obligatoire'), findsOneWidget);
+      expect(find.byType(EcranFormulaire), findsOneWidget);
+
+      // 2. Titre de 61 caractères : refusé.
+      await tester.enterText(titre, 'a' * 61);
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+      expect(find.text('Le titre fait 60 caractères au plus'), findsOneWidget);
+      expect(find.byType(EcranFormulaire), findsOneWidget);
+
+      // 3. Tâche valide avec échéance : elle apparaît avec son libellé.
+      await tester.enterText(titre, 'Rendre le TP');
+      await tester.tap(find.text('sans échéance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('25'));
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EcranFormulaire), findsNothing);
+      expect(find.text('6 à faire'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Rendre le TP'), 100);
+      expect(find.text('pour le 25/11'), findsOneWidget);
+    });
+  });
 }

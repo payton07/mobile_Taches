@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart' show MaxLengthEnforcement;
 
 import '../modele/taches.dart';
 
@@ -31,8 +32,14 @@ class _EcranFormulaireState extends State<EcranFormulaire> {
   final _cleFormulaire = GlobalKey<FormState>();
   final _titre = TextEditingController();
   final _note = TextEditingController();
+
+  /// Clé du champ d'échéance : sa valeur est lue à l'enregistrement.
+  final _cleEcheance = GlobalKey<FormFieldState<Echeance>>();
   Priorite _priorite = Priorite.normale;
-  Echeance _echeance = const SansEcheance();
+
+  /// Désactivée à l'ouverture : aucun message sur un formulaire vierge.
+  /// Après un premier refus, chaque champ est revalidé dès qu'il change.
+  AutovalidateMode _validation = AutovalidateMode.disabled;
 
   @override
   void dispose() {
@@ -42,13 +49,13 @@ class _EcranFormulaireState extends State<EcranFormulaire> {
     super.dispose();
   }
 
-  /// Ouvre le calendrier ; une date choisie remplace l'échéance actuelle,
-  /// une annulation la laisse inchangée.
-  Future<void> _choisirDate() async {
+  /// Ouvre le calendrier ; une date choisie remplace l'échéance du champ
+  /// [champ], une annulation la laisse inchangée.
+  Future<void> _choisirDate(FormFieldState<Echeance> champ) async {
     final jour = DateUtils.dateOnly(widget.aujourdhui);
     final date = await showDatePicker(
       context: context,
-      initialDate: switch (_echeance) {
+      initialDate: switch (champ.value!) {
         EcheanceDate(:final date) => date,
         SansEcheance() || EcheanceHebdomadaire() => jour,
       },
@@ -56,20 +63,24 @@ class _EcranFormulaireState extends State<EcranFormulaire> {
       lastDate: DateTime(jour.year + 5, 12, 31),
     );
     if (date == null || !mounted) return;
-    setState(() => _echeance = EcheanceDate(date));
+    champ.didChange(EcheanceDate(date));
   }
 
   /// Valide la saisie puis ferme l'écran en renvoyant la nouvelle tâche ;
   /// si une règle n'est pas respectée, le formulaire reste ouvert.
   void _enregistrer() {
-    if (!_cleFormulaire.currentState!.validate()) return;
-    final note = _note.text;
+    if (!_cleFormulaire.currentState!.validate()) {
+      setState(() => _validation = AutovalidateMode.onUserInteraction);
+      return;
+    }
+    // Espaces de début et de fin retirés ; une note vide = pas de note.
+    final note = _note.text.trim();
     Navigator.of(context).pop(
       Tache(
         id: widget.identifiant,
-        titre: _titre.text,
+        titre: _titre.text.trim(),
         priorite: _priorite,
-        echeance: _echeance,
+        echeance: _cleEcheance.currentState!.value!,
         note: note.isEmpty ? null : note,
       ),
     );
@@ -84,6 +95,7 @@ class _EcranFormulaireState extends State<EcranFormulaire> {
           constraints: const BoxConstraints(maxWidth: 720),
           child: Form(
             key: _cleFormulaire,
+            autovalidateMode: _validation,
             // ListView : le formulaire défile sur un petit écran ou quand
             // le clavier est ouvert.
             child: ListView(
@@ -96,10 +108,11 @@ class _EcranFormulaireState extends State<EcranFormulaire> {
                     border: OutlineInputBorder(),
                   ),
                   textInputAction: TextInputAction.next,
-                  // Seule règle de E1 : le modèle refuse un titre vide.
-                  validator: (texte) => (texte == null || texte.isEmpty)
-                      ? 'Le titre est obligatoire'
-                      : null,
+                  // Compteur « n/60 » sans bloquer la frappe : un titre trop
+                  // long reste saisissable, puis il est refusé avec un message.
+                  maxLength: longueurMaxTitre,
+                  maxLengthEnforcement: MaxLengthEnforcement.none,
+                  validator: (texte) => erreurTitre(texte ?? ''),
                 ),
                 const SizedBox(height: 16),
                 const _Libelle('Priorité'),
@@ -118,23 +131,38 @@ class _EcranFormulaireState extends State<EcranFormulaire> {
                 ),
                 const SizedBox(height: 16),
                 const _Libelle('Échéance'),
-                Wrap(
-                  spacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: _choisirDate,
-                      icon: const Icon(Icons.event_outlined),
-                      // Libellé du modèle : « sans échéance », « pour le 3/12 ».
-                      label: Text(libelleEcheance(_echeance)),
+                // FormField : l'échéance passe par le même validate() que les
+                // champs de texte, et son message s'affiche sous le bouton.
+                FormField<Echeance>(
+                  key: _cleEcheance,
+                  initialValue: const SansEcheance(),
+                  validator: (echeance) =>
+                      erreurEcheance(echeance!, aujourdhui: widget.aujourdhui),
+                  builder: (champ) => InputDecorator(
+                    decoration: InputDecoration(
+                      errorText: champ.errorText,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
                     ),
-                    if (_echeance is EcheanceDate)
-                      TextButton(
-                        onPressed: () =>
-                            setState(() => _echeance = const SansEcheance()),
-                        child: const Text('Retirer la date'),
-                      ),
-                  ],
+                    child: Wrap(
+                      spacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () => _choisirDate(champ),
+                          icon: const Icon(Icons.event_outlined),
+                          // Libellé du modèle : « sans échéance », « pour le 3/12 ».
+                          label: Text(libelleEcheance(champ.value!)),
+                        ),
+                        if (champ.value is EcheanceDate)
+                          TextButton(
+                            onPressed: () =>
+                                champ.didChange(const SansEcheance()),
+                            child: const Text('Retirer la date'),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -147,6 +175,9 @@ class _EcranFormulaireState extends State<EcranFormulaire> {
                   keyboardType: TextInputType.multiline,
                   minLines: 3,
                   maxLines: 6,
+                  maxLength: longueurMaxNote,
+                  maxLengthEnforcement: MaxLengthEnforcement.none,
+                  validator: (texte) => erreurNote(texte ?? ''),
                 ),
                 const SizedBox(height: 24),
                 FilledButton.icon(

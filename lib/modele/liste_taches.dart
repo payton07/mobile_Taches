@@ -19,11 +19,11 @@ import 'tache.dart';
 /// Nouvelle liste des tâches non faites de priorité au moins [auMoins],
 /// de la plus urgente à la moins urgente puis, à priorité égale, par titre.
 /// La collection reçue n'est jamais modifiée.
-List<Tache> aFaire(Iterable<Tache> taches,
-    {Priorite auMoins = Priorite.basse}) =>
-    taches
-        .where((tache) => !tache.faite && tache.priorite >= auMoins)
-        .toList()
+List<Tache> aFaire(
+  Iterable<Tache> taches, {
+  Priorite auMoins = Priorite.basse,
+}) =>
+    taches.where((tache) => !tache.faite && tache.priorite >= auMoins).toList()
       ..sort(_parUrgencePuisTitre);
 
 /// Priorité décroissante, puis titre croissant.

@@ -4,6 +4,7 @@ import '../composants/composants.dart';
 import '../donnees/exemples.dart';
 import '../modele/taches.dart';
 import 'ecran_detail.dart';
+import 'ecran_formulaire.dart';
 
 /// Écran de liste : affiche les tâches, permet d'en ajouter, de les cocher
 /// et de filtrer l'affichage.
@@ -22,30 +23,40 @@ class _EcranListeState extends State<EcranListe> {
   /// Au-delà, le contenu reste centré au lieu de s'étirer (grands écrans).
   static const _largeurMax = 720.0;
 
-
-
   /// Toutes les tâches, quel que soit le filtre.
   List<Tache> _taches = tachesDepuisTexteJson(tachesExempleJson);
 
   /// Filtre d'affichage choisi.
   Filtre _filtre = Filtre.toutes;
 
-  /// Numéro de la prochaine tâche ajoutée, pour un identifiant unique.
+  /// Numéro du prochain identifiant « ajout-n » à essayer.
   int _numeroAjout = 1;
 
-
-
-  void _ajouter() {
-    setState(() {
-      final nouvelle = Tache(
-        id: 'ajout-$_numeroAjout',
-        titre: 'Nouvelle tâche $_numeroAjout',
-      );
-      _numeroAjout++;
-      _taches = [..._taches, nouvelle];
-    });
+  /// Identifiant libre pour une nouvelle tâche : « ajout-n », n ne faisant
+  /// qu'augmenter, et toute valeur déjà portée par une tâche est sautée.
+  String _nouvelIdentifiant() {
+    final existants = {for (final tache in _taches) tache.id};
+    String identifiant;
+    do {
+      identifiant = 'ajout-${_numeroAjout++}';
+    } while (existants.contains(identifiant));
+    return identifiant;
   }
 
+  /// Ouvre le formulaire et ajoute la tâche qu'il renvoie, s'il en renvoie
+  /// une. Un simple retour renvoie null : rien n'est ajouté.
+  Future<void> _ajouter() async {
+    final nouvelle = await Navigator.of(context).push<Tache>(
+      MaterialPageRoute(
+        builder: (_) => EcranFormulaire(
+          identifiant: _nouvelIdentifiant(),
+          aujourdhui: widget.maintenant(),
+        ),
+      ),
+    );
+    if (nouvelle == null || !mounted) return;
+    setState(() => _taches = [..._taches, nouvelle]);
+  }
 
   void _changerFiltre(Filtre filtre) {
     setState(() => _filtre = filtre);
@@ -72,18 +83,14 @@ class _EcranListeState extends State<EcranListe> {
   Future<void> _ouvrir(Tache tache) async {
     final modifiee = await Navigator.of(context).push<Tache>(
       MaterialPageRoute(
-        builder: (_) => EcranDetail(
-          tache: tache,
-          aujourdhui: widget.maintenant(),
-        ),
+        builder: (_) =>
+            EcranDetail(tache: tache, aujourdhui: widget.maintenant()),
       ),
     );
     // Après un await, l'écran a pu être retiré : plus de setState possible.
     if (modifiee == null || !mounted) return;
     _remplacer(modifiee);
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -111,20 +118,20 @@ class _EcranListeState extends State<EcranListe> {
                 child: visibles.isEmpty
                     ? _MessageVide(texte: _filtre.messageVide)
                     : ListView.builder(
-                  // Laisse la place du bouton flottant sous la dernière tâche.
-                  padding: const EdgeInsets.only(bottom: 88),
-                  itemCount: visibles.length,
-                  itemBuilder: (context, index) {
-                    final tache = visibles[index];
-                    return TuileTache(
-                      key: ValueKey(tache.id),
-                      tache: tache,
-                      aujourdhui: aujourdhui,
-                      surBascule: () => _basculer(tache),
-                      surOuverture: () => _ouvrir(tache),
-                    );
-                  },
-                ),
+                        // Laisse la place du bouton flottant sous la dernière tâche.
+                        padding: const EdgeInsets.only(bottom: 88),
+                        itemCount: visibles.length,
+                        itemBuilder: (context, index) {
+                          final tache = visibles[index];
+                          return TuileTache(
+                            key: ValueKey(tache.id),
+                            tache: tache,
+                            aujourdhui: aujourdhui,
+                            surBascule: () => _basculer(tache),
+                            surOuverture: () => _ouvrir(tache),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -160,9 +167,7 @@ class _MessageVide extends StatelessWidget {
             Text(
               texte,
               textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
+              style: Theme.of(context).textTheme.titleMedium
                   ?.copyWith(color: couleurs.onSurfaceVariant),
             ),
           ],

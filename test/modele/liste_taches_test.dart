@@ -3,12 +3,12 @@ import 'package:test/test.dart';
 
 void main() {
   var compteur = 0;
-  Tache tache(String titre, Priorite priorite, {bool faite = false}) =>
-      Tache(
-          id: 't${compteur++}',
-          titre: titre,
-          priorite: priorite,
-          faite: faite);
+  Tache tache(String titre, Priorite priorite, {bool faite = false}) => Tache(
+    id: 't${compteur++}',
+    titre: titre,
+    priorite: priorite,
+    faite: faite,
+  );
 
   /// L'exemple de l'énoncé.
   List<Tache> exemple() => [
@@ -19,8 +19,7 @@ void main() {
     tache('Banque', Priorite.normale),
   ];
 
-  List<String> titres(List<Tache> taches) =>
-      [for (final t in taches) t.titre];
+  List<String> titres(List<Tache> taches) => [for (final t in taches) t.titre];
 
   group('bilan', () {
     test('une collection vide donne (faites: 0, total: 0)', () {
@@ -33,27 +32,37 @@ void main() {
 
     test('toutes faites / aucune faite', () {
       final taches = exemple();
-      expect(bilan(taches.map((t) => t.copieAvec(faite: true))),
-          (faites: 5, total: 5));
-      expect(bilan(taches.map((t) => t.copieAvec(faite: false))),
-          (faites: 0, total: 5));
+      expect(bilan(taches.map((t) => t.copieAvec(faite: true))), (
+        faites: 5,
+        total: 5,
+      ));
+      expect(bilan(taches.map((t) => t.copieAvec(faite: false))), (
+        faites: 0,
+        total: 5,
+      ));
     });
   });
 
   group('aFaire', () {
     test('exemple de l\'énoncé, sans filtre de priorité', () {
-      expect(titres(aFaire(exemple())),
-          ['Passeport', 'Banque', 'Dentiste', 'Courses']);
+      expect(titres(aFaire(exemple())), [
+        'Passeport',
+        'Banque',
+        'Dentiste',
+        'Courses',
+      ]);
     });
 
     test('exemple de l\'énoncé, avec auMoins: Priorite.normale', () {
-      expect(titres(aFaire(exemple(), auMoins: Priorite.normale)),
-          ['Passeport', 'Banque', 'Dentiste']);
+      expect(titres(aFaire(exemple(), auMoins: Priorite.normale)), [
+        'Passeport',
+        'Banque',
+        'Dentiste',
+      ]);
     });
 
     test('auMoins est inclusif', () {
-      expect(titres(aFaire(exemple(), auMoins: Priorite.haute)),
-          ['Passeport']);
+      expect(titres(aFaire(exemple(), auMoins: Priorite.haute)), ['Passeport']);
     });
 
     test('exclut les tâches faites, même urgentes', () {
@@ -92,18 +101,21 @@ void main() {
 
     test('fonctionne sur une collection non modifiable', () {
       final recue = List<Tache>.unmodifiable(exemple());
-      expect(titres(aFaire(recue)),
-          ['Passeport', 'Banque', 'Dentiste', 'Courses']);
+      expect(titres(aFaire(recue)), [
+        'Passeport',
+        'Banque',
+        'Dentiste',
+        'Courses',
+      ]);
     });
 
-    test('renvoie une nouvelle liste, indépendante de la collection reçue',
-            () {
-          final recue = exemple().where((t) => !t.faite).toList();
-          final resultat = aFaire(recue);
+    test('renvoie une nouvelle liste, indépendante de la collection reçue', () {
+      final recue = exemple().where((t) => !t.faite).toList();
+      final resultat = aFaire(recue);
 
-          expect(identical(resultat, recue), isFalse);
-          resultat.clear();
-          expect(recue, hasLength(4));
-        });
+      expect(identical(resultat, recue), isFalse);
+      resultat.clear();
+      expect(recue, hasLength(4));
+    });
   });
 }

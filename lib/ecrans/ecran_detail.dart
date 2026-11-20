@@ -56,9 +56,9 @@ class EcranDetail extends StatelessWidget {
                   enRetard ? '$echeance · en retard' : echeance,
                   style: enRetard
                       ? TextStyle(
-                    color: couleurs.error,
-                    fontWeight: FontWeight.w600,
-                  )
+                          color: couleurs.error,
+                          fontWeight: FontWeight.w600,
+                        )
                       : null,
                 ),
               ),
@@ -87,11 +87,13 @@ class EcranDetail extends StatelessWidget {
               FilledButton.icon(
                 // Ferme le détail en renvoyant à la liste la tâche modifiée.
                 // Le bouton de retour, lui, ferme sans résultat (null).
-                onPressed: () => Navigator.of(context)
-                    .pop(tache.copieAvec(faite: !tache.faite)),
+                onPressed: () =>
+                    Navigator.of(context)
+                        .pop(tache.copieAvec(faite: !tache.faite)),
                 icon: Icon(tache.faite ? Icons.undo : Icons.check),
                 label: Text(
-                    tache.faite ? 'Marquer à faire' : 'Marquer comme faite'),
+                  tache.faite ? 'Marquer à faire' : 'Marquer comme faite',
+                ),
               ),
             ],
           ),
@@ -120,14 +122,10 @@ class _Champ extends StatelessWidget {
       leading: Icon(icone),
       title: Text(
         libelle,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
+        style: Theme.of(context).textTheme.labelMedium
+            ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: valeur,
-      ),
+      subtitle: Padding(padding: const EdgeInsets.only(top: 4), child: valeur),
     );
   }
 }

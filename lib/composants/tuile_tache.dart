@@ -40,10 +40,7 @@ class TuileTache extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
         onTap: surOuverture,
-        leading: Checkbox(
-          value: tache.faite,
-          onChanged: (_) => surBascule(),
-        ),
+        leading: Checkbox(value: tache.faite, onChanged: (_) => surBascule()),
         title: Text(
           tache.titre,
           // Une seule ligne, terminée par « … » si le titre est trop long.
@@ -51,9 +48,9 @@ class TuileTache extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: tache.faite
               ? textes.bodyLarge?.copyWith(
-            decoration: TextDecoration.lineThrough,
-            color: couleurs.onSurfaceVariant,
-          )
+                  decoration: TextDecoration.lineThrough,
+                  color: couleurs.onSurfaceVariant,
+                )
               : null,
         ),
         subtitle: Text(

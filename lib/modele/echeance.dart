@@ -38,9 +38,9 @@ final class EcheanceDate extends Echeance {
   @override
   bool operator ==(Object other) =>
       other is EcheanceDate &&
-          other.annee == annee &&
-          other.mois == mois &&
-          other.jour == jour;
+      other.annee == annee &&
+      other.mois == mois &&
+      other.jour == jour;
 
   @override
   int get hashCode => Object.hash(annee, mois, jour);
@@ -57,7 +57,11 @@ final class EcheanceHebdomadaire extends Echeance {
   /// Un jour hors de [1, 7] est une erreur de programmation : [RangeError].
   EcheanceHebdomadaire(this.jourSemaine) {
     RangeError.checkValueInInterval(
-        jourSemaine, DateTime.monday, DateTime.sunday, 'jourSemaine');
+      jourSemaine,
+      DateTime.monday,
+      DateTime.sunday,
+      'jourSemaine',
+    );
   }
 
   @override

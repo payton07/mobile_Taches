@@ -29,8 +29,10 @@ void main() {
   });
 
   test('libellés affichables', () {
-    expect([for (final f in Filtre.values) f.libelle],
-        ['Toutes', 'À faire', 'Faites']);
+    expect(
+      [for (final f in Filtre.values) f.libelle],
+      ['Toutes', 'À faire', 'Faites'],
+    );
   });
 
   test('chaque filtre a son message quand il ne retient rien', () {

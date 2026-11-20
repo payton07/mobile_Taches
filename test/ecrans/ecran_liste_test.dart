@@ -4,6 +4,7 @@ import 'package:mes_taches/ecrans/ecran_liste.dart';
 import 'package:mes_taches/modele/taches.dart';
 import 'package:mes_taches/composants/composants.dart';
 import 'package:mes_taches/ecrans/ecran_detail.dart';
+import 'package:mes_taches/ecrans/ecran_formulaire.dart';
 
 // ---------------------------------------------------------------------------
 // Utilitaires
@@ -12,9 +13,7 @@ import 'package:mes_taches/ecrans/ecran_detail.dart';
 /// Affiche l'écran de liste avec une horloge figée au 18/11/2026 à 15 h,
 /// pour que les tests ne dépendent pas du jour où on les lance.
 Future<void> afficherEcran(WidgetTester tester) => tester.pumpWidget(
-  MaterialApp(
-    home: EcranListe(maintenant: () => DateTime(2026, 11, 18, 15)),
-  ),
+  MaterialApp(home: EcranListe(maintenant: () => DateTime(2026, 11, 18, 15))),
 );
 
 /// Simule un écran de [largeur] pixels, rétabli à la fin du test.
@@ -30,11 +29,20 @@ Future<void> choisirFiltre(WidgetTester tester, String libelle) async {
   await tester.pump();
 }
 
-/// Touche le bouton « Ajouter » [fois] fois.
+/// Crée, par le formulaire, une tâche de titre [titre] : touche « Ajouter »,
+/// saisit le titre puis touche « Enregistrer ».
+Future<void> creer(WidgetTester tester, String titre) async {
+  await tester.tap(find.text('Ajouter'));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.widgetWithText(TextFormField, 'Titre'), titre);
+  await tester.tap(find.text('Enregistrer'));
+  await tester.pumpAndSettle();
+}
+
+/// Crée [fois] tâches par le formulaire : « Nouvelle tâche 1 », « 2 »…
 Future<void> ajouter(WidgetTester tester, {int fois = 1}) async {
-  for (var i = 0; i < fois; i++) {
-    await tester.tap(find.text('Ajouter'));
-    await tester.pump();
+  for (var i = 1; i <= fois; i++) {
+    await creer(tester, 'Nouvelle tâche $i');
   }
 }
 
@@ -57,28 +65,28 @@ void main() {
   // B1 : affichage et ajout
   // -------------------------------------------------------------------------
   group('B1 : affichage et ajout', () {
-    testWidgets('affiche le compteur et les tâches d\'exemple',
-            (tester) async {
-          await afficherEcran(tester);
+    testWidgets('affiche le compteur et les tâches d\'exemple', (tester) async {
+      await afficherEcran(tester);
 
-          // 6 tâches d'exemple, dont une faite (t1).
-          expect(find.text('5 à faire'), findsOneWidget);
-          expect(find.text('1/6 faite'), findsOneWidget);
-          expect(find.text('Installer Flutter'), findsOneWidget);
-          expect(find.text('Relire le CM 01'), findsOneWidget);
-        });
+      // 6 tâches d'exemple, dont une faite (t1).
+      expect(find.text('5 à faire'), findsOneWidget);
+      expect(find.text('1/6 faite'), findsOneWidget);
+      expect(find.text('Installer Flutter'), findsOneWidget);
+      expect(find.text('Relire le CM 01'), findsOneWidget);
+    });
 
-    testWidgets('« Ajouter » ajoute une tâche et met à jour le compteur',
-            (tester) async {
-          await afficherEcran(tester);
+    testWidgets('une tâche ajoutée par le formulaire met à jour le compteur', (
+      tester,
+    ) async {
+      await afficherEcran(tester);
 
-          await ajouter(tester);
+      await ajouter(tester);
 
-          expect(find.text('6 à faire'), findsOneWidget);
-          // La nouvelle tâche est en bas de la liste : on fait défiler jusqu'à elle.
-          await tester.scrollUntilVisible(find.text('Nouvelle tâche 1'), 100);
-          expect(find.text('Nouvelle tâche 1'), findsOneWidget);
-        });
+      expect(find.text('6 à faire'), findsOneWidget);
+      // La nouvelle tâche est en bas de la liste : on fait défiler jusqu'à elle.
+      await tester.scrollUntilVisible(find.text('Nouvelle tâche 1'), 100);
+      expect(find.text('Nouvelle tâche 1'), findsOneWidget);
+    });
 
     testWidgets('deux ajouts donnent deux tâches distinctes', (tester) async {
       await afficherEcran(tester);
@@ -96,24 +104,24 @@ void main() {
   // B2 : cocher une tâche
   // -------------------------------------------------------------------------
   group('B2 : cocher une tâche', () {
-    testWidgets('cocher puis décocher une tâche met à jour le compteur',
-            (tester) async {
-          await afficherEcran(tester);
-          expect(find.text('5 à faire'), findsOneWidget);
+    testWidgets('cocher puis décocher une tâche met à jour le compteur', (
+      tester,
+    ) async {
+      await afficherEcran(tester);
+      expect(find.text('5 à faire'), findsOneWidget);
 
-          await tester.tap(caseDe('Relire le CM 01'));
-          await tester.pump();
+      await tester.tap(caseDe('Relire le CM 01'));
+      await tester.pump();
 
-          expect(find.text('4 à faire'), findsOneWidget);
-          expect(tester.widget<Checkbox>(caseDe('Relire le CM 01')).value, isTrue);
+      expect(find.text('4 à faire'), findsOneWidget);
+      expect(tester.widget<Checkbox>(caseDe('Relire le CM 01')).value, isTrue);
 
-          await tester.tap(caseDe('Relire le CM 01'));
-          await tester.pump();
+      await tester.tap(caseDe('Relire le CM 01'));
+      await tester.pump();
 
-          expect(find.text('5 à faire'), findsOneWidget);
-          expect(
-              tester.widget<Checkbox>(caseDe('Relire le CM 01')).value, isFalse);
-        });
+      expect(find.text('5 à faire'), findsOneWidget);
+      expect(tester.widget<Checkbox>(caseDe('Relire le CM 01')).value, isFalse);
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -124,21 +132,24 @@ void main() {
       await afficherEcran(tester);
 
       final selecteur = tester.widget<SegmentedButton<Filtre>>(
-          find.byType(SegmentedButton<Filtre>));
+        find.byType(SegmentedButton<Filtre>),
+      );
       expect(selecteur.selected, {Filtre.toutes});
       expect(find.text('Installer Flutter'), findsOneWidget);
       expect(find.text('Relire le CM 01'), findsOneWidget);
     });
 
-    testWidgets('« À faire » masque les tâches faites sans changer le compteur',
-            (tester) async {
-          await afficherEcran(tester);
-          await choisirFiltre(tester, 'À faire');
+    testWidgets(
+      '« À faire » masque les tâches faites sans changer le compteur',
+      (tester) async {
+        await afficherEcran(tester);
+        await choisirFiltre(tester, 'À faire');
 
-          expect(find.text('Installer Flutter'), findsNothing);
-          expect(find.text('Relire le CM 01'), findsOneWidget);
-          expect(find.text('5 à faire'), findsOneWidget);
-        });
+        expect(find.text('Installer Flutter'), findsNothing);
+        expect(find.text('Relire le CM 01'), findsOneWidget);
+        expect(find.text('5 à faire'), findsOneWidget);
+      },
+    );
 
     testWidgets('« Faites » n\'affiche que les tâches faites', (tester) async {
       await afficherEcran(tester);
@@ -149,61 +160,64 @@ void main() {
       expect(find.text('5 à faire'), findsOneWidget);
     });
 
-    testWidgets('cocher depuis « À faire » fait disparaître la tâche',
-            (tester) async {
-          await afficherEcran(tester);
-          await choisirFiltre(tester, 'À faire');
+    testWidgets('cocher depuis « À faire » fait disparaître la tâche', (
+      tester,
+    ) async {
+      await afficherEcran(tester);
+      await choisirFiltre(tester, 'À faire');
 
-          await tester.tap(caseDe('Relire le CM 01'));
-          await tester.pump();
+      await tester.tap(caseDe('Relire le CM 01'));
+      await tester.pump();
 
-          expect(find.text('Relire le CM 01'), findsNothing);
-          expect(find.text('4 à faire'), findsOneWidget);
-        });
+      expect(find.text('Relire le CM 01'), findsNothing);
+      expect(find.text('4 à faire'), findsOneWidget);
+    });
 
     testWidgets(
-        'décocher depuis « Faites » fait réapparaître la tâche dans « À faire »',
-            (tester) async {
-          await afficherEcran(tester);
-          await choisirFiltre(tester, 'Faites');
+      'décocher depuis « Faites » fait réapparaître la tâche dans « À faire »',
+      (tester) async {
+        await afficherEcran(tester);
+        await choisirFiltre(tester, 'Faites');
 
-          await tester.tap(caseDe('Installer Flutter'));
-          await tester.pump();
+        await tester.tap(caseDe('Installer Flutter'));
+        await tester.pump();
 
-          expect(find.text('Installer Flutter'), findsNothing);
-          expect(find.text('Aucune tâche faite'), findsOneWidget);
-          expect(find.text('6 à faire'), findsOneWidget);
+        expect(find.text('Installer Flutter'), findsNothing);
+        expect(find.text('Aucune tâche faite'), findsOneWidget);
+        expect(find.text('6 à faire'), findsOneWidget);
 
-          await choisirFiltre(tester, 'À faire');
-          expect(find.text('Installer Flutter'), findsOneWidget);
-        });
+        await choisirFiltre(tester, 'À faire');
+        expect(find.text('Installer Flutter'), findsOneWidget);
+      },
+    );
   });
 
   // -------------------------------------------------------------------------
   // C2 : tuile de tâche
   // -------------------------------------------------------------------------
   group('C2 : tuile de tâche', () {
-    testWidgets('affiche le libellé de l\'échéance de chaque tâche',
-            (tester) async {
-          await afficherEcran(tester);
+    testWidgets('affiche le libellé de l\'échéance de chaque tâche', (
+      tester,
+    ) async {
+      await afficherEcran(tester);
 
-          expect(find.text('pour le 20/11'), findsOneWidget); // t4
-          expect(find.text('sans échéance'), findsWidgets); // t1, t2, t3
-        });
+      expect(find.text('pour le 20/11'), findsOneWidget); // t4
+      expect(find.text('sans échéance'), findsWidgets); // t1, t2, t3
+    });
 
-    testWidgets('signale en couleur d\'alerte une tâche en retard',
-            (tester) async {
-          await afficherEcran(tester);
+    testWidgets('signale en couleur d\'alerte une tâche en retard', (
+      tester,
+    ) async {
+      await afficherEcran(tester);
 
-          // t6, échéance le 2/11 : en retard le 18/11.
-          await tester.scrollUntilVisible(find.text('pour le 2/11'), 100);
-          expect(couleurDe(tester, 'pour le 2/11'), couleurAlerte(tester));
+      // t6, échéance le 2/11 : en retard le 18/11.
+      await tester.scrollUntilVisible(find.text('pour le 2/11'), 100);
+      expect(couleurDe(tester, 'pour le 2/11'), couleurAlerte(tester));
 
-          // t4, échéance le 20/11 : pas encore en retard (on remonte).
-          await tester.scrollUntilVisible(find.text('pour le 20/11'), -100);
-          expect(couleurDe(tester, 'pour le 20/11'),
-              isNot(couleurAlerte(tester)));
-        });
+      // t4, échéance le 20/11 : pas encore en retard (on remonte).
+      await tester.scrollUntilVisible(find.text('pour le 20/11'), -100);
+      expect(couleurDe(tester, 'pour le 20/11'), isNot(couleurAlerte(tester)));
+    });
 
     testWidgets('toucher le titre ne coche pas la tâche', (tester) async {
       await afficherEcran(tester);
@@ -214,8 +228,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('5 à faire'), findsOneWidget);
-      expect(
-          tester.widget<Checkbox>(caseDe('Relire le CM 01')).value, isFalse);
+      expect(tester.widget<Checkbox>(caseDe('Relire le CM 01')).value, isFalse);
     });
   });
 
@@ -223,68 +236,78 @@ void main() {
   // C3 : mise en page, contraintes et cas limites
   // -------------------------------------------------------------------------
   group('C3 : mise en page, contraintes et cas limites', () {
-    testWidgets('le compteur et le filtre restent fixes, seule la liste défile',
-            (tester) async {
-          await afficherEcran(tester);
-          await ajouter(tester, fois: 5); // assez de tâches pour devoir défiler
+    testWidgets(
+      'le compteur et le filtre restent fixes, seule la liste défile',
+      (tester) async {
+        await afficherEcran(tester);
+        await ajouter(tester, fois: 5); // assez de tâches pour devoir défiler
 
-          final compteurAvant = tester.getTopLeft(find.text('10 à faire'));
-          final filtreAvant =
-          tester.getTopLeft(find.byType(SegmentedButton<Filtre>));
+        final compteurAvant = tester.getTopLeft(find.text('10 à faire'));
+        final filtreAvant = tester.getTopLeft(
+          find.byType(SegmentedButton<Filtre>),
+        );
 
-          await tester.drag(find.byType(ListView), const Offset(0, -300));
-          await tester.pump();
+        await tester.drag(find.byType(ListView), const Offset(0, -300));
+        await tester.pump();
 
-          final defilement = tester
-              .state<ScrollableState>(find.descendant(
-            of: find.byType(ListView),
-            matching: find.byType(Scrollable),
-          ))
-              .position
-              .pixels;
-          expect(defilement, greaterThan(0)); // la liste a bien défilé…
-          expect(tester.getTopLeft(find.text('10 à faire')), compteurAvant);
-          expect(tester.getTopLeft(find.byType(SegmentedButton<Filtre>)),
-              filtreAvant); // … mais pas l'en-tête
-        });
+        final defilement = tester
+            .state<ScrollableState>(
+              find.descendant(
+                of: find.byType(ListView),
+                matching: find.byType(Scrollable),
+              ),
+            )
+            .position
+            .pixels;
+        expect(defilement, greaterThan(0)); // la liste a bien défilé…
+        expect(tester.getTopLeft(find.text('10 à faire')), compteurAvant);
+        expect(
+          tester.getTopLeft(find.byType(SegmentedButton<Filtre>)),
+          filtreAvant,
+        ); // … mais pas l'en-tête
+      },
+    );
 
-    testWidgets('le message vide est centré et dépend du filtre',
-            (tester) async {
-          fixerLargeur(tester, 800);
-          await afficherEcran(tester);
-          await choisirFiltre(tester, 'Faites');
-          await tester.tap(caseDe('Installer Flutter'));
-          await tester.pump();
+    testWidgets('le message vide est centré et dépend du filtre', (
+      tester,
+    ) async {
+      fixerLargeur(tester, 800);
+      await afficherEcran(tester);
+      await choisirFiltre(tester, 'Faites');
+      await tester.tap(caseDe('Installer Flutter'));
+      await tester.pump();
 
-          final message = find.text('Aucune tâche faite');
-          expect(message, findsOneWidget);
-          expect(tester.getCenter(message).dx, 400); // centré horizontalement
-        });
+      final message = find.text('Aucune tâche faite');
+      expect(message, findsOneWidget);
+      expect(tester.getCenter(message).dx, 400); // centré horizontalement
+    });
 
     for (final largeur in [360.0, 1280.0]) {
-      testWidgets('aucun débordement à ${largeur.toInt()} pixels de large',
-              (tester) async {
-            fixerLargeur(tester, largeur);
-            await afficherEcran(tester);
-            expect(tester.takeException(), isNull);
+      testWidgets('aucun débordement à ${largeur.toInt()} pixels de large', (
+        tester,
+      ) async {
+        fixerLargeur(tester, largeur);
+        await afficherEcran(tester);
+        expect(tester.takeException(), isNull);
 
-            for (final filtre in ['À faire', 'Faites', 'Toutes']) {
-              await choisirFiltre(tester, filtre);
-              expect(tester.takeException(), isNull, reason: filtre);
-            }
+        for (final filtre in ['À faire', 'Faites', 'Toutes']) {
+          await choisirFiltre(tester, filtre);
+          expect(tester.takeException(), isNull, reason: filtre);
+        }
 
-            await ajouter(tester, fois: 3);
-            expect(tester.takeException(), isNull);
-          });
+        await ajouter(tester, fois: 3);
+        expect(tester.takeException(), isNull);
+      });
     }
 
-    testWidgets('sur grand écran, le contenu ne dépasse pas 720 pixels',
-            (tester) async {
-          fixerLargeur(tester, 1280);
-          await afficherEcran(tester);
+    testWidgets('sur grand écran, le contenu ne dépasse pas 720 pixels', (
+      tester,
+    ) async {
+      fixerLargeur(tester, 1280);
+      await afficherEcran(tester);
 
-          expect(tester.getSize(find.byType(ListView)).width, 720);
-        });
+      expect(tester.getSize(find.byType(ListView)).width, 720);
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -330,9 +353,8 @@ void main() {
   // D2 : agir depuis le détail
   // -------------------------------------------------------------------------
   group('D2 : agir depuis le détail', () {
-    testWidgets(
-        'point de contrôle D : depuis « À faire », marquer faite la '
-            'deuxième tâche affichée', (tester) async {
+    testWidgets('point de contrôle D : depuis « À faire », marquer faite la '
+        'deuxième tâche affichée', (tester) async {
       await afficherEcran(tester);
       await choisirFiltre(tester, 'À faire');
 
@@ -373,8 +395,84 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('5 à faire'), findsOneWidget);
-      expect(
-          tester.widget<Checkbox>(caseDe('Relire le CM 01')).value, isFalse);
+      expect(tester.widget<Checkbox>(caseDe('Relire le CM 01')).value, isFalse);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // E1 : formulaire de création
+  // -------------------------------------------------------------------------
+  group('E1 : formulaire de création', () {
+    testWidgets('« Ajouter » ouvre le formulaire', (tester) async {
+      await afficherEcran(tester);
+
+      await tester.tap(find.text('Ajouter'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EcranFormulaire), findsOneWidget);
+    });
+
+    testWidgets('une tâche créée avec une échéance apparaît avec son libellé', (
+      tester,
+    ) async {
+      await afficherEcran(tester);
+
+      await tester.tap(find.text('Ajouter'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Titre'),
+        'Rendre le TP',
+      );
+      await tester.tap(find.text('sans échéance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('25'));
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EcranFormulaire), findsNothing);
+      expect(find.text('6 à faire'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Rendre le TP'), 100);
+      expect(find.text('pour le 25/11'), findsOneWidget);
+    });
+
+    testWidgets('revenir sans enregistrer n\'ajoute rien', (tester) async {
+      await afficherEcran(tester);
+
+      await tester.tap(find.text('Ajouter'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Titre'),
+        'Abandonnée',
+      );
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text('5 à faire'), findsOneWidget);
+      expect(find.text('1/6 faite'), findsOneWidget);
+      expect(find.text('Abandonnée'), findsNothing);
+    });
+
+    testWidgets('deux tâches de même titre restent deux tâches distinctes', (
+      tester,
+    ) async {
+      // Écran assez haut pour afficher les 8 tâches sans défiler.
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await afficherEcran(tester);
+
+      await creer(tester, 'Doublon');
+      await creer(tester, 'Doublon');
+      expect(find.text('Doublon'), findsNWidgets(2));
+
+      // Identifiants distincts : cocher l'une ne coche pas l'autre.
+      await tester.tap(caseDe('Doublon').last);
+      await tester.pump();
+      expect(find.text('6 à faire'), findsOneWidget);
+      final cases = tester.widgetList<Checkbox>(caseDe('Doublon')).toList();
+      expect(cases.map((c) => c.value), [false, true]);
     });
   });
 }

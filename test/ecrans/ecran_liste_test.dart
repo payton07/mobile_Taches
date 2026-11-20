@@ -634,4 +634,141 @@ void main() {
       expect(find.text('5 à faire'), findsOneWidget);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // G3 : trier et regrouper
+  // -------------------------------------------------------------------------
+  group('G3 : trier et regrouper', () {
+    /// Choisit [libelle] dans le menu « Trier » de la barre d'application.
+    Future<void> trierPar(WidgetTester tester, String libelle) async {
+      await tester.tap(find.byTooltip('Trier'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(libelle).last);
+      await tester.pumpAndSettle();
+    }
+
+    /// En-têtes et titres affichés, de haut en bas.
+    List<String> lignes(WidgetTester tester) {
+      final elements = <(double, String)>[
+        for (final element in find.byType(EnteteGroupe).evaluate())
+          (
+            tester.getTopLeft(find.byWidget(element.widget)).dy,
+            '# ${(element.widget as EnteteGroupe).libelle}',
+          ),
+        for (final element in find.byType(TuileTache).evaluate())
+          (
+            tester.getTopLeft(find.byWidget(element.widget)).dy,
+            (element.widget as TuileTache).tache.titre,
+          ),
+      ]..sort((a, b) => a.$1.compareTo(b.$1));
+      return [for (final (_, texte) in elements) texte];
+    }
+
+    /// Écran assez haut pour voir toutes les lignes sans défiler.
+    void grandEcran(WidgetTester tester) {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+    }
+
+    testWidgets('par défaut, l\'ordre d\'ajout sans en-têtes', (tester) async {
+      grandEcran(tester);
+      await afficherEcran(tester);
+
+      expect(lignes(tester), [
+        'Installer Flutter',
+        'Relire le CM 01',
+        'Faire les courses',
+        'Appeler le dentiste',
+        'Renouveler le passeport',
+        'Rendre la convention de stage',
+      ]);
+    });
+
+    testWidgets('tri par priorité', (tester) async {
+      grandEcran(tester);
+      await afficherEcran(tester);
+
+      await trierPar(tester, 'Priorité');
+
+      expect(lignes(tester), [
+        'Installer Flutter', // haute
+        'Renouveler le passeport', // haute
+        'Appeler le dentiste', // normale
+        'Relire le CM 01',
+        'Rendre la convention de stage',
+        'Faire les courses', // basse
+      ]);
+    });
+
+    testWidgets('tri par titre', (tester) async {
+      grandEcran(tester);
+      await afficherEcran(tester);
+
+      await trierPar(tester, 'Titre');
+
+      expect(lignes(tester), [
+        'Appeler le dentiste',
+        'Faire les courses',
+        'Installer Flutter',
+        'Relire le CM 01',
+        'Rendre la convention de stage',
+        'Renouveler le passeport',
+      ]);
+    });
+
+    testWidgets('tri par échéance : regroupé sous des en-têtes', (
+      tester,
+    ) async {
+      grandEcran(tester);
+      await afficherEcran(tester);
+
+      await trierPar(tester, 'Échéance');
+
+      expect(lignes(tester), [
+        '# En retard',
+        'Rendre la convention de stage', // 2/11, le 18/11
+        '# Datées',
+        'Appeler le dentiste', // 20/11
+        'Renouveler le passeport', // 15/1
+        '# Sans échéance',
+        'Faire les courses',
+        'Installer Flutter',
+        'Relire le CM 01',
+      ]);
+      expect(find.text('En retard (1)'), findsOneWidget);
+      expect(find.text('Sans échéance (3)'), findsOneWidget);
+    });
+
+    testWidgets('le tri se combine au filtre et ne change pas le compteur', (
+      tester,
+    ) async {
+      grandEcran(tester);
+      await afficherEcran(tester);
+
+      await trierPar(tester, 'Échéance');
+      await choisirFiltre(tester, 'Faites');
+
+      expect(lignes(tester), ['# Sans échéance', 'Installer Flutter']);
+      expect(find.text('5 à faire'), findsOneWidget);
+    });
+
+    testWidgets('cocher une tâche la fait changer de groupe', (tester) async {
+      grandEcran(tester);
+      await afficherEcran(tester);
+      await trierPar(tester, 'Échéance');
+
+      await tester.tap(caseDe('Rendre la convention de stage'));
+      await tester.pump();
+
+      // Faite, elle n'est plus en retard : groupe « Datées », par date.
+      expect(lignes(tester).take(4), [
+        '# Datées',
+        'Rendre la convention de stage',
+        'Appeler le dentiste',
+        'Renouveler le passeport',
+      ]);
+      expect(find.text('En retard (1)'), findsNothing);
+    });
+  });
 }

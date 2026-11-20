@@ -29,6 +29,9 @@ class _EcranListeState extends State<EcranListe> {
   /// Filtre d'affichage choisi.
   Filtre _filtre = Filtre.toutes;
 
+  /// Ordre d'affichage choisi (G3) ; par défaut, l'ordre d'ajout.
+  Tri _tri = Tri.ajout;
+
   /// Numéro du prochain identifiant « ajout-n » à essayer.
   int _numeroAjout = 1;
 
@@ -56,6 +59,10 @@ class _EcranListeState extends State<EcranListe> {
     );
     if (nouvelle == null || !mounted) return;
     setState(() => _taches = [..._taches, nouvelle]);
+  }
+
+  void _changerTri(Tri tri) {
+    setState(() => _tri = tri);
   }
 
   void _changerFiltre(Filtre filtre) {
@@ -136,9 +143,26 @@ class _EcranListeState extends State<EcranListe> {
       for (final tache in _taches)
         if (_filtre.accepte(tache)) tache,
     ];
+    // Lignes à afficher : triées, et regroupées sous des en-têtes quand on
+    // trie par échéance. Le tri ne touche qu'à l'affichage, jamais à l'état.
+    final elements = <_Element>[
+      if (_tri == Tri.echeance)
+        for (final (:groupe, :taches) in grouperParEcheance(
+          visibles,
+          aujourdhui: aujourdhui,
+        )) ...[
+          _Entete(groupe.libelle, taches.length),
+          for (final tache in taches) _Ligne(tache),
+        ]
+      else
+        for (final tache in trier(visibles, _tri)) _Ligne(tache),
+    ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mes tâches')),
+      appBar: AppBar(
+        title: const Text('Mes tâches'),
+        actions: [MenuTri(tri: _tri, surChangement: _changerTri)],
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: _largeurMax),
@@ -155,23 +179,25 @@ class _EcranListeState extends State<EcranListe> {
                     : ListView.builder(
                         // Laisse la place du bouton flottant sous la dernière tâche.
                         padding: const EdgeInsets.only(bottom: 88),
-                        itemCount: visibles.length,
-                        itemBuilder: (context, index) {
-                          final tache = visibles[index];
-                          // Glisser vers la gauche supprime la tâche.
-                          return Dismissible(
-                            key: ValueKey(tache.id),
-                            direction: DismissDirection.endToStart,
-                            background: const _FondSuppression(),
-                            onDismissed: (_) => _supprimer(tache),
-                            child: TuileTache(
-                              tache: tache,
-                              aujourdhui: aujourdhui,
-                              surBascule: () => _basculer(tache),
-                              surOuverture: () => _ouvrir(tache),
-                            ),
-                          );
-                        },
+                        itemCount: elements.length,
+                        itemBuilder: (context, index) =>
+                            switch (elements[index]) {
+                              _Entete(:final libelle, :final nombre) =>
+                                EnteteGroupe(libelle: libelle, nombre: nombre),
+                              // Glisser vers la gauche supprime la tâche.
+                              _Ligne(:final tache) => Dismissible(
+                                key: ValueKey(tache.id),
+                                direction: DismissDirection.endToStart,
+                                background: const _FondSuppression(),
+                                onDismissed: (_) => _supprimer(tache),
+                                child: TuileTache(
+                                  tache: tache,
+                                  aujourdhui: aujourdhui,
+                                  surBascule: () => _basculer(tache),
+                                  surOuverture: () => _ouvrir(tache),
+                                ),
+                              ),
+                            },
                       ),
               ),
             ],
@@ -185,6 +211,24 @@ class _EcranListeState extends State<EcranListe> {
       ),
     );
   }
+}
+
+/// Élément de la liste affichée : un en-tête de groupe ou une tâche.
+sealed class _Element {
+  const _Element();
+}
+
+final class _Entete extends _Element {
+  const _Entete(this.libelle, this.nombre);
+
+  final String libelle;
+  final int nombre;
+}
+
+final class _Ligne extends _Element {
+  const _Ligne(this.tache);
+
+  final Tache tache;
 }
 
 /// Fond révélé sous une tuile qu'on fait glisser pour la supprimer.

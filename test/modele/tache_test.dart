@@ -7,6 +7,10 @@ void main() {
       expect(Priorite.basse < Priorite.normale, isTrue);
       expect(Priorite.normale < Priorite.haute, isTrue);
       expect(Priorite.haute > Priorite.basse, isTrue);
+      expect(Priorite.normale <= Priorite.normale, isTrue);
+      expect(Priorite.basse <= Priorite.haute, isTrue);
+      expect(Priorite.haute <= Priorite.basse, isFalse);
+      expect(Priorite.normale >= Priorite.normale, isTrue);
       expect([Priorite.haute, Priorite.basse, Priorite.normale]..sort(), [
         Priorite.basse,
         Priorite.normale,
@@ -30,6 +34,35 @@ void main() {
       expect(
         EcheanceDate(DateTime(2026, 12, 1)),
         isNot(EcheanceDate(DateTime(2026, 12, 2))),
+      );
+    });
+
+    test('deux échéances égales ont le même hashCode', () {
+      expect(
+        EcheanceDate(DateTime(2026, 12, 1, 18, 30)).hashCode,
+        EcheanceDate(DateTime(2026, 12, 1)).hashCode,
+      );
+      expect(
+        EcheanceHebdomadaire(DateTime.monday).hashCode,
+        EcheanceHebdomadaire(DateTime.monday).hashCode,
+      );
+      expect(const SansEcheance().hashCode, const SansEcheance().hashCode);
+      // Un Set s'appuie sur hashCode puis == : les doublons sont confondus.
+      final doublons = <Echeance>[
+        EcheanceDate(DateTime(2026, 12, 1, 8)),
+        EcheanceDate(DateTime(2026, 12, 1, 20)),
+        EcheanceHebdomadaire(DateTime.friday),
+        EcheanceHebdomadaire(DateTime.friday),
+        const SansEcheance(),
+        const SansEcheance(),
+      ];
+      expect(doublons.toSet(), hasLength(3));
+    });
+
+    test('la date d\'une échéance datée est ce jour-là à minuit', () {
+      expect(
+        EcheanceDate(DateTime(2026, 12, 1, 18, 30)).date,
+        DateTime(2026, 12, 1),
       );
     });
 
@@ -83,6 +116,34 @@ void main() {
       expect(modifiee.note, 'à relire');
       expect(modifiee.faite, isTrue);
       expect(originale, exemple());
+    });
+
+    test('deux tâches différant d\'un seul champ ne sont pas égales', () {
+      final reference = exemple();
+      final variantes = {
+        'id': Tache(
+          id: 't2',
+          titre: reference.titre,
+          note: reference.note,
+          echeance: reference.echeance,
+        ),
+        'titre': reference.copieAvec(titre: 'Autre titre'),
+        'priorite': reference.copieAvec(priorite: Priorite.haute),
+        'echeance': reference.copieAvec(echeance: const SansEcheance()),
+        'note': reference.copieAvec(note: 'autre note'),
+        'note absente': reference.sansNote(),
+        'faite': reference.copieAvec(faite: true),
+      };
+      variantes.forEach((champ, variante) {
+        expect(variante, isNot(reference), reason: champ);
+      });
+    });
+
+    test('deux tâches égales ont le même hashCode', () {
+      expect(exemple().hashCode, exemple().hashCode);
+      // Un Set s'appuie sur hashCode puis == : les doublons sont confondus.
+      expect({exemple(), exemple()}, hasLength(1));
+      expect({exemple(), exemple().copieAvec(faite: true)}, hasLength(2));
     });
 
     test('copieAvec sans argument donne une tâche égale', () {

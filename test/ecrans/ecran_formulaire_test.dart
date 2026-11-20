@@ -118,6 +118,25 @@ void main() {
     expect(recue?.echeance, EcheanceDate(DateTime(2026, 11, 25)));
   });
 
+  testWidgets('rouvrir le calendrier propose la date déjà choisie', (
+    tester,
+  ) async {
+    await ouvrirFormulaire(tester, (_) {});
+
+    await tester.tap(find.text('sans échéance'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('25'));
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('pour le 25/11'));
+    await tester.pumpAndSettle();
+    final calendrier = tester.widget<CalendarDatePicker>(
+      find.byType(CalendarDatePicker),
+    );
+    expect(calendrier.initialDate, DateTime(2026, 11, 25));
+  });
+
   testWidgets('« Retirer la date » revient à « sans échéance »', (
     tester,
   ) async {

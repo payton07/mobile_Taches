@@ -4,6 +4,7 @@ import '../composants/composants.dart';
 import '../donnees/exemples.dart';
 import '../modele/taches.dart';
 import 'ecran_detail.dart';
+import 'ecran_formulaire.dart';
 
 /// Écran de liste : affiche les tâches, permet d'en ajouter, de les cocher
 /// et de filtrer l'affichage.
@@ -28,18 +29,33 @@ class _EcranListeState extends State<EcranListe> {
   /// Filtre d'affichage choisi.
   Filtre _filtre = Filtre.toutes;
 
-  /// Numéro de la prochaine tâche ajoutée, pour un identifiant unique.
+  /// Numéro du prochain identifiant « ajout-n » à essayer.
   int _numeroAjout = 1;
 
-  void _ajouter() {
-    setState(() {
-      final nouvelle = Tache(
-        id: 'ajout-$_numeroAjout',
-        titre: 'Nouvelle tâche $_numeroAjout',
-      );
-      _numeroAjout++;
-      _taches = [..._taches, nouvelle];
-    });
+  /// Identifiant libre pour une nouvelle tâche : « ajout-n », n ne faisant
+  /// qu'augmenter, et toute valeur déjà portée par une tâche est sautée.
+  String _nouvelIdentifiant() {
+    final existants = {for (final tache in _taches) tache.id};
+    String identifiant;
+    do {
+      identifiant = 'ajout-${_numeroAjout++}';
+    } while (existants.contains(identifiant));
+    return identifiant;
+  }
+
+  /// Ouvre le formulaire et ajoute la tâche qu'il renvoie, s'il en renvoie
+  /// une. Un simple retour renvoie null : rien n'est ajouté.
+  Future<void> _ajouter() async {
+    final nouvelle = await Navigator.of(context).push<Tache>(
+      MaterialPageRoute(
+        builder: (_) => EcranFormulaire(
+          identifiant: _nouvelIdentifiant(),
+          aujourdhui: widget.maintenant(),
+        ),
+      ),
+    );
+    if (nouvelle == null || !mounted) return;
+    setState(() => _taches = [..._taches, nouvelle]);
   }
 
   void _changerFiltre(Filtre filtre) {

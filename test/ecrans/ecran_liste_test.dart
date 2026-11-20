@@ -4,6 +4,7 @@ import 'package:mes_taches/ecrans/ecran_liste.dart';
 import 'package:mes_taches/modele/taches.dart';
 import 'package:mes_taches/composants/composants.dart';
 import 'package:mes_taches/ecrans/ecran_detail.dart';
+import 'package:mes_taches/ecrans/ecran_formulaire.dart';
 
 // ---------------------------------------------------------------------------
 // Utilitaires
@@ -28,11 +29,20 @@ Future<void> choisirFiltre(WidgetTester tester, String libelle) async {
   await tester.pump();
 }
 
-/// Touche le bouton « Ajouter » [fois] fois.
+/// Crée, par le formulaire, une tâche de titre [titre] : touche « Ajouter »,
+/// saisit le titre puis touche « Enregistrer ».
+Future<void> creer(WidgetTester tester, String titre) async {
+  await tester.tap(find.text('Ajouter'));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.widgetWithText(TextFormField, 'Titre'), titre);
+  await tester.tap(find.text('Enregistrer'));
+  await tester.pumpAndSettle();
+}
+
+/// Crée [fois] tâches par le formulaire : « Nouvelle tâche 1 », « 2 »…
 Future<void> ajouter(WidgetTester tester, {int fois = 1}) async {
-  for (var i = 0; i < fois; i++) {
-    await tester.tap(find.text('Ajouter'));
-    await tester.pump();
+  for (var i = 1; i <= fois; i++) {
+    await creer(tester, 'Nouvelle tâche $i');
   }
 }
 
@@ -65,7 +75,7 @@ void main() {
       expect(find.text('Relire le CM 01'), findsOneWidget);
     });
 
-    testWidgets('« Ajouter » ajoute une tâche et met à jour le compteur', (
+    testWidgets('une tâche ajoutée par le formulaire met à jour le compteur', (
       tester,
     ) async {
       await afficherEcran(tester);
@@ -386,6 +396,83 @@ void main() {
 
       expect(find.text('5 à faire'), findsOneWidget);
       expect(tester.widget<Checkbox>(caseDe('Relire le CM 01')).value, isFalse);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // E1 : formulaire de création
+  // -------------------------------------------------------------------------
+  group('E1 : formulaire de création', () {
+    testWidgets('« Ajouter » ouvre le formulaire', (tester) async {
+      await afficherEcran(tester);
+
+      await tester.tap(find.text('Ajouter'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EcranFormulaire), findsOneWidget);
+    });
+
+    testWidgets('une tâche créée avec une échéance apparaît avec son libellé', (
+      tester,
+    ) async {
+      await afficherEcran(tester);
+
+      await tester.tap(find.text('Ajouter'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Titre'),
+        'Rendre le TP',
+      );
+      await tester.tap(find.text('sans échéance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('25'));
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EcranFormulaire), findsNothing);
+      expect(find.text('6 à faire'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Rendre le TP'), 100);
+      expect(find.text('pour le 25/11'), findsOneWidget);
+    });
+
+    testWidgets('revenir sans enregistrer n\'ajoute rien', (tester) async {
+      await afficherEcran(tester);
+
+      await tester.tap(find.text('Ajouter'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Titre'),
+        'Abandonnée',
+      );
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text('5 à faire'), findsOneWidget);
+      expect(find.text('1/6 faite'), findsOneWidget);
+      expect(find.text('Abandonnée'), findsNothing);
+    });
+
+    testWidgets('deux tâches de même titre restent deux tâches distinctes', (
+      tester,
+    ) async {
+      // Écran assez haut pour afficher les 8 tâches sans défiler.
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await afficherEcran(tester);
+
+      await creer(tester, 'Doublon');
+      await creer(tester, 'Doublon');
+      expect(find.text('Doublon'), findsNWidgets(2));
+
+      // Identifiants distincts : cocher l'une ne coche pas l'autre.
+      await tester.tap(caseDe('Doublon').last);
+      await tester.pump();
+      expect(find.text('6 à faire'), findsOneWidget);
+      final cases = tester.widgetList<Checkbox>(caseDe('Doublon')).toList();
+      expect(cases.map((c) => c.value), [false, true]);
     });
   });
 }

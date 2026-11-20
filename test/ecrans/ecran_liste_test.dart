@@ -516,4 +516,52 @@ void main() {
       expect(find.text('pour le 25/11'), findsOneWidget);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // G1 : modifier une tâche depuis le détail
+  // -------------------------------------------------------------------------
+  group('G1 : modifier une tâche', () {
+    testWidgets('« Modifier » remplace la tâche à sa place dans la liste', (
+      tester,
+    ) async {
+      await afficherEcran(tester);
+      final positionAvant = tester.getTopLeft(find.text('Relire le CM 01'));
+
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Modifier'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Relire le CM 01'),
+        'Relire le CM 02',
+      );
+      await tester.ensureVisible(find.text('Enregistrer'));
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EcranFormulaire), findsNothing);
+      expect(find.byType(EcranDetail), findsNothing);
+      expect(find.text('Relire le CM 01'), findsNothing);
+      // Même tâche (même identifiant) : même place, compteur inchangé.
+      expect(tester.getTopLeft(find.text('Relire le CM 02')), positionAvant);
+      expect(find.text('5 à faire'), findsOneWidget);
+      expect(find.text('1/6 faite'), findsOneWidget);
+    });
+
+    testWidgets('abandonner la modification ne change rien', (tester) async {
+      await afficherEcran(tester);
+
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Modifier'));
+      await tester.pumpAndSettle();
+      await tester.pageBack(); // ferme le formulaire
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EcranDetail), findsOneWidget);
+      await tester.pageBack(); // ferme le détail
+      await tester.pumpAndSettle();
+      expect(find.text('Relire le CM 01'), findsOneWidget);
+    });
+  });
 }

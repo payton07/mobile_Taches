@@ -3,21 +3,35 @@ import 'package:flutter/services.dart' show MaxLengthEnforcement;
 
 import '../modele/taches.dart';
 
-/// Écran de formulaire : saisie d'une nouvelle tâche.
+/// Écran de formulaire : création d'une tâche, ou modification d'une tâche
+/// existante (bonus G1), avec les mêmes champs et les mêmes règles.
 ///
 /// Son état ne contient que la saisie en cours ; les tâches restent dans
-/// l'écran de liste. « Enregistrer » ferme l'écran en renvoyant la nouvelle
-/// tâche (Navigator.pop) ; un simple retour ne renvoie rien (null).
+/// l'écran de liste. « Enregistrer » ferme l'écran en renvoyant la tâche
+/// (Navigator.pop) ; un simple retour ne renvoie rien (null).
 class EcranFormulaire extends StatefulWidget {
+  /// Création : formulaire vide, tâche d'identifiant [identifiant].
   const EcranFormulaire({
     super.key,
     required this.identifiant,
     required this.aujourdhui,
-  });
+  }) : initiale = null;
 
-  /// Identifiant de la tâche créée, choisi par la liste qui seule connaît
-  /// les identifiants déjà pris.
+  /// Modification : formulaire pré-rempli avec [tache] ; la tâche renvoyée
+  /// garde son identifiant et son état (faite ou non).
+  EcranFormulaire.modification({
+    super.key,
+    required Tache tache,
+    required this.aujourdhui,
+  }) : identifiant = tache.id,
+       initiale = tache;
+
+  /// Identifiant de la tâche renvoyée : choisi par la liste pour une
+  /// création, celui de la tâche modifiée sinon.
   final String identifiant;
+
+  /// Tâche modifiée, ou null pour une création.
+  final Tache? initiale;
 
   /// Date du jour, fournie par la liste : le formulaire ne lit jamais
   /// l'horloge.
@@ -42,6 +56,17 @@ class _EcranFormulaireState extends State<EcranFormulaire> {
   AutovalidateMode _validation = AutovalidateMode.disabled;
 
   @override
+  void initState() {
+    super.initState();
+    // Modification : les champs partent des valeurs de la tâche.
+    if (widget.initiale case final tache?) {
+      _titre.text = tache.titre;
+      _note.text = tache.note ?? '';
+      _priorite = tache.priorite;
+    }
+  }
+
+  @override
   void dispose() {
     // Les contrôleurs écoutent les champs : on les libère avec l'écran.
     _titre.dispose();
@@ -56,8 +81,9 @@ class _EcranFormulaireState extends State<EcranFormulaire> {
     final date = await showDatePicker(
       context: context,
       initialDate: switch (champ.value!) {
-        EcheanceDate(:final date) => date,
-        SansEcheance() || EcheanceHebdomadaire() => jour,
+        // Une date déjà passée (tâche modifiée) n'est pas proposable.
+        EcheanceDate(:final date) when !date.isBefore(jour) => date,
+        EcheanceDate() || SansEcheance() || EcheanceHebdomadaire() => jour,
       },
       firstDate: jour,
       lastDate: DateTime(jour.year + 5, 12, 31),
@@ -82,6 +108,7 @@ class _EcranFormulaireState extends State<EcranFormulaire> {
         priorite: _priorite,
         echeance: _cleEcheance.currentState!.value!,
         note: note.isEmpty ? null : note,
+        faite: widget.initiale?.faite ?? false,
       ),
     );
   }
@@ -89,7 +116,11 @@ class _EcranFormulaireState extends State<EcranFormulaire> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nouvelle tâche')),
+      appBar: AppBar(
+        title: Text(
+          widget.initiale == null ? 'Nouvelle tâche' : 'Modifier la tâche',
+        ),
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),
@@ -135,9 +166,17 @@ class _EcranFormulaireState extends State<EcranFormulaire> {
                 // champs de texte, et son message s'affiche sous le bouton.
                 FormField<Echeance>(
                   key: _cleEcheance,
-                  initialValue: const SansEcheance(),
-                  validator: (echeance) =>
-                      erreurEcheance(echeance!, aujourdhui: widget.aujourdhui),
+                  initialValue:
+                      widget.initiale?.echeance ?? const SansEcheance(),
+                  // Une échéance laissée telle quelle est acceptée, même déjà
+                  // passée : modifier le titre d'une tâche en retard ne doit
+                  // pas obliger à changer sa date.
+                  validator: (echeance) => echeance == widget.initiale?.echeance
+                      ? null
+                      : erreurEcheance(
+                          echeance!,
+                          aujourdhui: widget.aujourdhui,
+                        ),
                   builder: (champ) => InputDecorator(
                     decoration: InputDecoration(
                       errorText: champ.errorText,
@@ -154,11 +193,11 @@ class _EcranFormulaireState extends State<EcranFormulaire> {
                           // Libellé du modèle : « sans échéance », « pour le 3/12 ».
                           label: Text(libelleEcheance(champ.value!)),
                         ),
-                        if (champ.value is EcheanceDate)
+                        if (champ.value is! SansEcheance)
                           TextButton(
                             onPressed: () =>
                                 champ.didChange(const SansEcheance()),
-                            child: const Text('Retirer la date'),
+                            child: const Text("Retirer l'échéance"),
                           ),
                       ],
                     ),

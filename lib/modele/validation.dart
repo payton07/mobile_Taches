@@ -1,4 +1,5 @@
 import 'echeance.dart';
+import 'jour.dart';
 
 /// Règles de saisie d'une tâche (formulaire, partie E2).
 ///
@@ -36,15 +37,7 @@ String? erreurNote(String saisie) => saisie.trim().length > longueurMaxNote
 /// Aucun cas par défaut : une nouvelle forme d'échéance devra être traitée.
 String? erreurEcheance(Echeance echeance, {required DateTime aujourdhui}) =>
     switch (echeance) {
-      EcheanceDate(:final annee, :final mois, :final jour)
-          when _jour(annee, mois, jour).isBefore(
-            _jour(aujourdhui.year, aujourdhui.month, aujourdhui.day),
-          ) =>
+      final EcheanceDate date when estAvantAujourdhui(date, aujourdhui) =>
         "L'échéance ne peut pas être antérieure à aujourd'hui",
       EcheanceDate() || SansEcheance() || EcheanceHebdomadaire() => null,
     };
-
-/// Un jour calendaire à minuit UTC : comparer deux de ces valeurs revient à
-/// comparer les jours, sans que l'heure ni l'heure d'été n'interviennent.
-DateTime _jour(int annee, int mois, int jour) =>
-    DateTime.utc(annee, mois, jour);

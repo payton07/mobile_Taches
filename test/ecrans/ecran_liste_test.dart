@@ -564,4 +564,74 @@ void main() {
       expect(find.text('Relire le CM 01'), findsOneWidget);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // G2 : supprimer, avec annulation
+  // -------------------------------------------------------------------------
+  group('G2 : supprimer, avec annulation', () {
+    /// Fait glisser vers la gauche la tuile qui affiche [titre].
+    Future<void> glisser(WidgetTester tester, String titre) async {
+      await tester.drag(find.text(titre), const Offset(-600, 0));
+      await tester.pumpAndSettle();
+    }
+
+    /// Titres affichés, dans l'ordre de la liste.
+    List<String> titres(WidgetTester tester) => [
+      for (final tuile in tester.widgetList<TuileTache>(
+        find.byType(TuileTache),
+      ))
+        tuile.tache.titre,
+    ];
+
+    testWidgets('glisser une tâche la supprime et met à jour le compteur', (
+      tester,
+    ) async {
+      await afficherEcran(tester);
+
+      await glisser(tester, 'Relire le CM 01');
+
+      expect(find.text('Relire le CM 01'), findsNothing);
+      expect(find.text('4 à faire'), findsOneWidget);
+      expect(find.text('1/5 faite'), findsOneWidget);
+      expect(find.text('« Relire le CM 01 » supprimée'), findsOneWidget);
+    });
+
+    testWidgets('« Annuler » remet la tâche à sa place', (tester) async {
+      await afficherEcran(tester);
+      final ordreAvant = titres(tester);
+
+      await glisser(tester, 'Relire le CM 01');
+      await tester.tap(find.text('Annuler'));
+      await tester.pumpAndSettle();
+
+      expect(titres(tester), ordreAvant);
+      expect(find.text('5 à faire'), findsOneWidget);
+    });
+
+    testWidgets('avec un filtre actif, l\'annulation rend sa place dans la '
+        'liste complète', (tester) async {
+      await afficherEcran(tester);
+      final ordreAvant = titres(tester);
+
+      await choisirFiltre(tester, 'À faire');
+      await glisser(tester, 'Faire les courses');
+      await tester.tap(find.text('Annuler'));
+      await tester.pumpAndSettle();
+      await choisirFiltre(tester, 'Toutes');
+
+      expect(titres(tester), ordreAvant);
+    });
+
+    testWidgets('supprimer la seule tâche faite affiche le message vide', (
+      tester,
+    ) async {
+      await afficherEcran(tester);
+      await choisirFiltre(tester, 'Faites');
+
+      await glisser(tester, 'Installer Flutter');
+
+      expect(find.text('Aucune tâche faite'), findsOneWidget);
+      expect(find.text('5 à faire'), findsOneWidget);
+    });
+  });
 }

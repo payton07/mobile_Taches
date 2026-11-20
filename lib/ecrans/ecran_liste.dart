@@ -6,8 +6,8 @@ import '../modele/taches.dart';
 import 'ecran_detail.dart';
 import 'ecran_formulaire.dart';
 
-/// Écran de liste : affiche les tâches, permet d'en ajouter, de les cocher
-/// et de filtrer l'affichage.
+/// Écran de liste : affiche les tâches, permet d'en ajouter, de les cocher,
+/// de les supprimer (avec annulation) et de filtrer l'affichage.
 class EcranListe extends StatefulWidget {
   const EcranListe({super.key, this.maintenant = DateTime.now});
 
@@ -73,6 +73,41 @@ class _EcranListeState extends State<EcranListe> {
     });
   }
 
+  /// Retire [tache] de la liste et propose d'annuler la suppression.
+  ///
+  /// La position retenue est celle de la tâche dans la liste complète, et
+  /// non dans la liste affichée : avec un filtre actif, les deux diffèrent.
+  void _supprimer(Tache tache) {
+    final position = _taches.indexWhere((t) => t.id == tache.id);
+    setState(() {
+      _taches = [
+        for (final t in _taches)
+          if (t.id != tache.id) t,
+      ];
+    });
+    ScaffoldMessenger.of(context)
+      // Une seule annulation proposée à la fois : la dernière suppression.
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('« ${tache.titre} » supprimée'),
+          action: SnackBarAction(
+            label: 'Annuler',
+            onPressed: () => _restaurer(tache, position),
+          ),
+        ),
+      );
+  }
+
+  /// Remet [tache] à sa [position] d'origine dans la liste complète.
+  void _restaurer(Tache tache, int position) {
+    if (!mounted) return;
+    setState(() {
+      // clamp : la liste a pu raccourcir entre-temps.
+      _taches = [..._taches]..insert(position.clamp(0, _taches.length), tache);
+    });
+  }
+
   /// Inverse l'état de [tache] (case à cocher de la liste).
   void _basculer(Tache tache) {
     _remplacer(tache.copieAvec(faite: !tache.faite));
@@ -123,12 +158,18 @@ class _EcranListeState extends State<EcranListe> {
                         itemCount: visibles.length,
                         itemBuilder: (context, index) {
                           final tache = visibles[index];
-                          return TuileTache(
+                          // Glisser vers la gauche supprime la tâche.
+                          return Dismissible(
                             key: ValueKey(tache.id),
-                            tache: tache,
-                            aujourdhui: aujourdhui,
-                            surBascule: () => _basculer(tache),
-                            surOuverture: () => _ouvrir(tache),
+                            direction: DismissDirection.endToStart,
+                            background: const _FondSuppression(),
+                            onDismissed: (_) => _supprimer(tache),
+                            child: TuileTache(
+                              tache: tache,
+                              aujourdhui: aujourdhui,
+                              surBascule: () => _basculer(tache),
+                              surOuverture: () => _ouvrir(tache),
+                            ),
                           );
                         },
                       ),
@@ -142,6 +183,27 @@ class _EcranListeState extends State<EcranListe> {
         icon: const Icon(Icons.add),
         label: const Text('Ajouter'),
       ),
+    );
+  }
+}
+
+/// Fond révélé sous une tuile qu'on fait glisser pour la supprimer.
+class _FondSuppression extends StatelessWidget {
+  const _FondSuppression();
+
+  @override
+  Widget build(BuildContext context) {
+    final couleurs = Theme.of(context).colorScheme;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      alignment: Alignment.centerRight,
+      decoration: BoxDecoration(
+        color: couleurs.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(Icons.delete_outline, color: couleurs.onErrorContainer),
     );
   }
 }

@@ -325,4 +325,56 @@ void main() {
       expect(find.text('pain, lait, café'), findsOneWidget);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // D2 : agir depuis le détail
+  // -------------------------------------------------------------------------
+  group('D2 : agir depuis le détail', () {
+    testWidgets(
+        'point de contrôle D : depuis « À faire », marquer faite la '
+            'deuxième tâche affichée', (tester) async {
+      await afficherEcran(tester);
+      await choisirFiltre(tester, 'À faire');
+
+      // Deuxième tâche affichée : t3 « Faire les courses ».
+      await tester.tap(find.byType(TuileTache).at(1));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Marquer comme faite'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EcranDetail), findsNothing);
+      expect(find.text('Faire les courses'), findsNothing);
+      expect(find.text('4 à faire'), findsOneWidget);
+
+      await choisirFiltre(tester, 'Faites');
+      expect(find.text('Faire les courses'), findsOneWidget);
+      expect(find.text('Relire le CM 01'), findsNothing); // pas la mauvaise
+    });
+
+    testWidgets('« Marquer à faire » depuis « Faites »', (tester) async {
+      await afficherEcran(tester);
+      await choisirFiltre(tester, 'Faites');
+
+      await tester.tap(find.text('Installer Flutter'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Marquer à faire'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Aucune tâche faite'), findsOneWidget);
+      expect(find.text('6 à faire'), findsOneWidget);
+    });
+
+    testWidgets('un simple retour ne change rien', (tester) async {
+      await afficherEcran(tester);
+
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text('5 à faire'), findsOneWidget);
+      expect(
+          tester.widget<Checkbox>(caseDe('Relire le CM 01')).value, isFalse);
+    });
+  });
 }

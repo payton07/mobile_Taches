@@ -3,9 +3,11 @@ import 'package:material_ui/material_ui.dart';
 import '../composants/composants.dart';
 import '../modele/taches.dart';
 
-/// Écran de détail : affiche tout le contenu d'une tâche.
+/// Écran de détail : affiche tout le contenu d'une tâche et permet de la
+/// marquer faite ou à faire.
 /// Ne possède aucun état : la tâche et la date du jour descendent par le
-/// constructeur. Le bouton de retour de l'AppBar ramène à la liste.
+/// constructeur ; une action remonte par la valeur de retour (Navigator.pop),
+/// un simple retour ne renvoie rien (null).
 class EcranDetail extends StatelessWidget {
   const EcranDetail({super.key, required this.tache, required this.aujourdhui});
 
@@ -80,6 +82,16 @@ class EcranDetail extends StatelessWidget {
                     : Icons.radio_button_unchecked,
                 libelle: 'État',
                 valeur: Text(tache.faite ? 'Faite' : 'À faire'),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                // Ferme le détail en renvoyant à la liste la tâche modifiée.
+                // Le bouton de retour, lui, ferme sans résultat (null).
+                onPressed: () => Navigator.of(context)
+                    .pop(tache.copieAvec(faite: !tache.faite)),
+                icon: Icon(tache.faite ? Icons.undo : Icons.check),
+                label: Text(
+                    tache.faite ? 'Marquer à faire' : 'Marquer comme faite'),
               ),
             ],
           ),

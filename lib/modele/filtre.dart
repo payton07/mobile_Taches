@@ -2,14 +2,17 @@ import 'tache.dart';
 
 /// Filtre d'affichage de la liste des tâches.
 enum Filtre {
-  toutes('Toutes'),
-  aFaire('À faire'),
-  faites('Faites');
+  toutes('Toutes', 'Aucune tâche'),
+  aFaire('À faire', 'Aucune tâche à faire'),
+  faites('Faites', 'Aucune tâche faite');
 
-  const Filtre(this.libelle);
+  const Filtre(this.libelle, this.messageVide);
 
-  /// Libellé affichable.
+  /// Libellé affichable dans le sélecteur.
   final String libelle;
+
+  /// Message affiché quand ce filtre ne retient aucune tâche.
+  final String messageVide;
 
   /// Vrai si [tache] doit être affichée avec ce filtre.
   /// Se contente de lire la tâche : filtrer ne la modifie jamais.

@@ -18,6 +18,9 @@ class EcranListe extends StatefulWidget {
 }
 
 class _EcranListeState extends State<EcranListe> {
+  /// Au-delà, le contenu reste centré au lieu de s'étirer (grands écrans).
+  static const _largeurMax = 720.0;
+
 
 
   /// Toutes les tâches, quel que soit le filtre.
@@ -56,8 +59,9 @@ class _EcranListeState extends State<EcranListe> {
     setState(() => _filtre = filtre);
   }
 
-  /// Ouvrira l'écran de détail de la tâche [id] (partie suivante).
+  /// Ouvrira l'écran de détail de la tâche [id] (partie D).
   void _ouvrir(String id) {}
+
 
 
   @override
@@ -72,36 +76,76 @@ class _EcranListeState extends State<EcranListe> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mes tâches')),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CompteurTaches(faites: faites, total: total),
-          SelecteurFiltre(filtre: _filtre, surChangement: _changerFiltre),
-          Expanded(
-            child: visibles.isEmpty
-                ? const Center(child: Text('Aucune tâche'))
-                : ListView.builder(
-              // Laisse la place du bouton flottant sous la dernière tâche.
-              padding: const EdgeInsets.only(bottom: 88),
-              itemCount: visibles.length,
-              itemBuilder: (context, index) {
-                final tache = visibles[index];
-                return TuileTache(
-                  key: ValueKey(tache.id),
-                  tache: tache,
-                  aujourdhui: aujourdhui,
-                  surBascule: () => _basculer(tache.id),
-                  surOuverture: () => _ouvrir(tache.id),
-                );
-              },
-            ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _largeurMax),
+          // En-tête fixe (compteur, filtre) puis liste qui défile :
+          // Expanded donne à la ListView une hauteur bornée, l'espace restant.
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              CompteurTaches(faites: faites, total: total),
+              SelecteurFiltre(filtre: _filtre, surChangement: _changerFiltre),
+              Expanded(
+                child: visibles.isEmpty
+                    ? _MessageVide(texte: _filtre.messageVide)
+                    : ListView.builder(
+                  // Laisse la place du bouton flottant sous la dernière tâche.
+                  padding: const EdgeInsets.only(bottom: 88),
+                  itemCount: visibles.length,
+                  itemBuilder: (context, index) {
+                    final tache = visibles[index];
+                    return TuileTache(
+                      key: ValueKey(tache.id),
+                      tache: tache,
+                      aujourdhui: aujourdhui,
+                      surBascule: () => _basculer(tache.id),
+                      surOuverture: () => _ouvrir(tache.id),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _ajouter,
         icon: const Icon(Icons.add),
         label: const Text('Ajouter'),
+      ),
+    );
+  }
+}
+
+/// Message centré qui remplace la liste quand le filtre ne retient rien.
+class _MessageVide extends StatelessWidget {
+  const _MessageVide({required this.texte});
+
+  final String texte;
+
+  @override
+  Widget build(BuildContext context) {
+    final couleurs = Theme.of(context).colorScheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.inbox_outlined, size: 48, color: couleurs.outline),
+            const SizedBox(height: 12),
+            Text(
+              texte,
+              textAlign: TextAlign.center,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(color: couleurs.onSurfaceVariant),
+            ),
+          ],
+        ),
       ),
     );
   }

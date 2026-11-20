@@ -22,8 +22,6 @@ class _EcranListeState extends State<EcranListe> {
   /// Au-delà, le contenu reste centré au lieu de s'étirer (grands écrans).
   static const _largeurMax = 720.0;
 
-
-
   /// Toutes les tâches, quel que soit le filtre.
   List<Tache> _taches = tachesDepuisTexteJson(tachesExempleJson);
 
@@ -32,8 +30,6 @@ class _EcranListeState extends State<EcranListe> {
 
   /// Numéro de la prochaine tâche ajoutée, pour un identifiant unique.
   int _numeroAjout = 1;
-
-
 
   void _ajouter() {
     setState(() {
@@ -45,7 +41,6 @@ class _EcranListeState extends State<EcranListe> {
       _taches = [..._taches, nouvelle];
     });
   }
-
 
   void _changerFiltre(Filtre filtre) {
     setState(() => _filtre = filtre);
@@ -72,18 +67,14 @@ class _EcranListeState extends State<EcranListe> {
   Future<void> _ouvrir(Tache tache) async {
     final modifiee = await Navigator.of(context).push<Tache>(
       MaterialPageRoute(
-        builder: (_) => EcranDetail(
-          tache: tache,
-          aujourdhui: widget.maintenant(),
-        ),
+        builder: (_) =>
+            EcranDetail(tache: tache, aujourdhui: widget.maintenant()),
       ),
     );
     // Après un await, l'écran a pu être retiré : plus de setState possible.
     if (modifiee == null || !mounted) return;
     _remplacer(modifiee);
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -111,20 +102,20 @@ class _EcranListeState extends State<EcranListe> {
                 child: visibles.isEmpty
                     ? _MessageVide(texte: _filtre.messageVide)
                     : ListView.builder(
-                  // Laisse la place du bouton flottant sous la dernière tâche.
-                  padding: const EdgeInsets.only(bottom: 88),
-                  itemCount: visibles.length,
-                  itemBuilder: (context, index) {
-                    final tache = visibles[index];
-                    return TuileTache(
-                      key: ValueKey(tache.id),
-                      tache: tache,
-                      aujourdhui: aujourdhui,
-                      surBascule: () => _basculer(tache),
-                      surOuverture: () => _ouvrir(tache),
-                    );
-                  },
-                ),
+                        // Laisse la place du bouton flottant sous la dernière tâche.
+                        padding: const EdgeInsets.only(bottom: 88),
+                        itemCount: visibles.length,
+                        itemBuilder: (context, index) {
+                          final tache = visibles[index];
+                          return TuileTache(
+                            key: ValueKey(tache.id),
+                            tache: tache,
+                            aujourdhui: aujourdhui,
+                            surBascule: () => _basculer(tache),
+                            surOuverture: () => _ouvrir(tache),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -160,9 +151,7 @@ class _MessageVide extends StatelessWidget {
             Text(
               texte,
               textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
+              style: Theme.of(context).textTheme.titleMedium
                   ?.copyWith(color: couleurs.onSurfaceVariant),
             ),
           ],

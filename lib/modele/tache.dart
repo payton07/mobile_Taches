@@ -40,15 +40,14 @@ final class Tache {
     Echeance? echeance,
     String? note,
     bool? faite,
-  }) =>
-      Tache(
-        id: id,
-        titre: titre ?? this.titre,
-        priorite: priorite ?? this.priorite,
-        echeance: echeance ?? this.echeance,
-        note: note ?? this.note,
-        faite: faite ?? this.faite,
-      );
+  }) => Tache(
+    id: id,
+    titre: titre ?? this.titre,
+    priorite: priorite ?? this.priorite,
+    echeance: echeance ?? this.echeance,
+    note: note ?? this.note,
+    faite: faite ?? this.faite,
+  );
 
   /// Nouvelle tâche identique, mais sans note.
   Tache sansNote() => Tache(
@@ -63,18 +62,19 @@ final class Tache {
   @override
   bool operator ==(Object other) =>
       other is Tache &&
-          other.id == id &&
-          other.titre == titre &&
-          other.priorite == priorite &&
-          other.echeance == echeance &&
-          other.note == note &&
-          other.faite == faite;
+      other.id == id &&
+      other.titre == titre &&
+      other.priorite == priorite &&
+      other.echeance == echeance &&
+      other.note == note &&
+      other.faite == faite;
 
   @override
   int get hashCode => Object.hash(id, titre, priorite, echeance, note, faite);
 
   @override
-  String toString() => 'Tache(id: $id, titre: $titre, '
+  String toString() =>
+      'Tache(id: $id, titre: $titre, '
       'priorite: ${priorite.libelle}, echeance: $echeance, '
       'note: $note, faite: $faite)';
 }

@@ -22,17 +22,14 @@ class LigneTache extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
         onTap: surBascule,
-        leading: Checkbox(
-          value: tache.faite,
-          onChanged: (_) => surBascule(),
-        ),
+        leading: Checkbox(value: tache.faite, onChanged: (_) => surBascule()),
         title: Text(
           tache.titre,
           style: tache.faite
               ? textes.bodyLarge?.copyWith(
-            decoration: TextDecoration.lineThrough,
-            color: couleurs.onSurfaceVariant,
-          )
+                  decoration: TextDecoration.lineThrough,
+                  color: couleurs.onSurfaceVariant,
+                )
               : null,
         ),
         trailing: _BadgePriorite(priorite: tache.priorite),
@@ -56,10 +53,14 @@ class _BadgePriorite extends StatelessWidget {
     // provoquerait une erreur de compilation ici.
     final (fond, texte) = switch (priorite) {
       Priorite.haute => (couleurs.errorContainer, couleurs.onErrorContainer),
-      Priorite.normale =>
-      (couleurs.secondaryContainer, couleurs.onSecondaryContainer),
-      Priorite.basse =>
-      (couleurs.surfaceContainerHighest, couleurs.onSurfaceVariant),
+      Priorite.normale => (
+        couleurs.secondaryContainer,
+        couleurs.onSecondaryContainer,
+      ),
+      Priorite.basse => (
+        couleurs.surfaceContainerHighest,
+        couleurs.onSurfaceVariant,
+      ),
     };
 
     return Container(

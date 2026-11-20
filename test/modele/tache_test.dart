@@ -7,10 +7,11 @@ void main() {
       expect(Priorite.basse < Priorite.normale, isTrue);
       expect(Priorite.normale < Priorite.haute, isTrue);
       expect(Priorite.haute > Priorite.basse, isTrue);
-      expect(
-        [Priorite.haute, Priorite.basse, Priorite.normale]..sort(),
-        [Priorite.basse, Priorite.normale, Priorite.haute],
-      );
+      expect([Priorite.haute, Priorite.basse, Priorite.normale]..sort(), [
+        Priorite.basse,
+        Priorite.normale,
+        Priorite.haute,
+      ]);
     });
 
     test('a un libellé affichable', () {

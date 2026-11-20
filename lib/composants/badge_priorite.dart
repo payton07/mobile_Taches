@@ -17,10 +17,14 @@ class BadgePriorite extends StatelessWidget {
     // provoquerait une erreur de compilation ici.
     final (fond, texte) = switch (priorite) {
       Priorite.haute => (couleurs.errorContainer, couleurs.onErrorContainer),
-      Priorite.normale =>
-      (couleurs.secondaryContainer, couleurs.onSecondaryContainer),
-      Priorite.basse =>
-      (couleurs.surfaceContainerHighest, couleurs.onSurfaceVariant),
+      Priorite.normale => (
+        couleurs.secondaryContainer,
+        couleurs.onSecondaryContainer,
+      ),
+      Priorite.basse => (
+        couleurs.surfaceContainerHighest,
+        couleurs.onSurfaceVariant,
+      ),
     };
 
     return Container(

@@ -1,6 +1,7 @@
 import 'echeance.dart';
 import 'priorite.dart';
 import 'tache.dart';
+
 import 'dart:convert';
 
 /// Priorité désignée par un code JSON, ou `null` si le code est inconnu.
@@ -36,22 +37,25 @@ Tache tacheDepuisJson(Map<String, Object?> json) => Tache(
 String _chaineNonVide(Map<String, Object?> json, String cle) =>
     switch (json[cle]) {
       String texte when texte.isNotEmpty => texte,
-      final valeur =>
-      throw FormatException('"$cle" doit être une chaîne non vide', valeur),
+      final valeur => throw FormatException(
+        '"$cle" doit être une chaîne non vide',
+        valeur,
+      ),
     };
 
 String? _chaineFacultative(Map<String, Object?> json, String cle) =>
     switch (json[cle]) {
       null => null,
       String texte => texte,
-      final valeur =>
-      throw FormatException('"$cle" doit être une chaîne ou null', valeur),
+      final valeur => throw FormatException(
+        '"$cle" doit être une chaîne ou null',
+        valeur,
+      ),
     };
 
 bool _booleen(Map<String, Object?> json, String cle) => switch (json[cle]) {
   bool booleen => booleen,
-  final valeur =>
-  throw FormatException('"$cle" doit être un booléen', valeur),
+  final valeur => throw FormatException('"$cle" doit être un booléen', valeur),
 };
 
 Priorite _priorite(Map<String, Object?> json, String cle) {
@@ -60,16 +64,17 @@ Priorite _priorite(Map<String, Object?> json, String cle) {
     final priorite = prioriteDepuisCode(valeur);
     if (priorite != null) return priorite;
   }
-  throw FormatException(
-      '"$cle" doit valoir "low", "normal" ou "high"', valeur);
+  throw FormatException('"$cle" doit valoir "low", "normal" ou "high"', valeur);
 }
 
 Echeance _echeance(Map<String, Object?> json, String cle) =>
     switch (json[cle]) {
       null => const SansEcheance(),
       String texte => EcheanceDate(_dateStricte(texte, cle)),
-      final valeur =>
-      throw FormatException('"$cle" doit être une date AAAA-MM-JJ', valeur),
+      final valeur => throw FormatException(
+        '"$cle" doit être une date AAAA-MM-JJ',
+        valeur,
+      ),
     };
 
 final _formatDate = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$');
@@ -91,9 +96,10 @@ DateTime _dateStricte(String texte, String cle) {
     }
   }
   throw FormatException(
-      '"$cle" doit être une date AAAA-MM-JJ existante', texte);
+    '"$cle" doit être une date AAAA-MM-JJ existante',
+    texte,
+  );
 }
-
 
 /// Lit un texte JSON contenant une liste de tâches.
 ///
@@ -109,8 +115,10 @@ List<Tache> tachesDepuisTexteJson(String texte) {
     for (final element in donnees)
       switch (element) {
         Map<String, Object?> json => tacheDepuisJson(json),
-        final autre =>
-        throw FormatException('Chaque tâche doit être un objet JSON', autre),
+        final autre => throw FormatException(
+          'Chaque tâche doit être un objet JSON',
+          autre,
+        ),
       },
   ];
 }

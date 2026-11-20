@@ -63,33 +63,50 @@ void main() {
 
     test('ignore les clés inconnues', () {
       expect(
-        tacheDepuisJson({...valide, 'couleur': 'rouge', 'tags': [1, 2]}),
+        tacheDepuisJson({
+          ...valide,
+          'couleur': 'rouge',
+          'tags': [1, 2],
+        }),
         tacheDepuisJson(valide),
       );
     });
 
     test('rejette les exemples t3 et t4', () {
-      expect(() => tacheDepuisJson({...valide, 'priority': 'urgent'}),
-          throwsFormatException);
-      expect(() => tacheDepuisJson({...valide, 'done': 'non'}),
-          throwsFormatException);
+      expect(
+        () => tacheDepuisJson({...valide, 'priority': 'urgent'}),
+        throwsFormatException,
+      );
+      expect(
+        () => tacheDepuisJson({...valide, 'done': 'non'}),
+        throwsFormatException,
+      );
     });
 
     test('rejette une clé obligatoire absente ou null', () {
       for (final cle in ['id', 'title', 'priority', 'done']) {
-        expect(() => tacheDepuisJson(sans(cle)), throwsFormatException,
-            reason: 'absente : $cle');
-        expect(() => tacheDepuisJson({...valide, cle: null}),
-            throwsFormatException,
-            reason: 'null : $cle');
+        expect(
+          () => tacheDepuisJson(sans(cle)),
+          throwsFormatException,
+          reason: 'absente : $cle',
+        );
+        expect(
+          () => tacheDepuisJson({...valide, cle: null}),
+          throwsFormatException,
+          reason: 'null : $cle',
+        );
       }
     });
 
     test('rejette une chaîne obligatoire vide', () {
-      expect(() => tacheDepuisJson({...valide, 'id': ''}),
-          throwsFormatException);
-      expect(() => tacheDepuisJson({...valide, 'title': ''}),
-          throwsFormatException);
+      expect(
+        () => tacheDepuisJson({...valide, 'id': ''}),
+        throwsFormatException,
+      );
+      expect(
+        () => tacheDepuisJson({...valide, 'title': ''}),
+        throwsFormatException,
+      );
     });
 
     test('rejette une valeur du mauvais type', () {
@@ -102,9 +119,11 @@ void main() {
         'note': 42,
       };
       invalides.forEach((cle, valeur) {
-        expect(() => tacheDepuisJson({...valide, cle: valeur}),
-            throwsFormatException,
-            reason: '$cle: $valeur');
+        expect(
+          () => tacheDepuisJson({...valide, cle: valeur}),
+          throwsFormatException,
+          reason: '$cle: $valeur',
+        );
       });
     });
 
@@ -118,9 +137,11 @@ void main() {
         '2026-02-30',
         '2026-00-10',
       ]) {
-        expect(() => tacheDepuisJson({...valide, 'due': due}),
-            throwsFormatException,
-            reason: due);
+        expect(
+          () => tacheDepuisJson({...valide, 'due': due}),
+          throwsFormatException,
+          reason: due,
+        );
       }
     });
 
@@ -151,13 +172,14 @@ void main() {
     });
 
     test('rejette un texte qui n\'est pas du JSON', () {
-      expect(() => tachesDepuisTexteJson('pas du json'),
-          throwsFormatException);
+      expect(() => tachesDepuisTexteJson('pas du json'), throwsFormatException);
     });
 
     test('rejette un JSON qui n\'est pas une liste', () {
-      expect(() => tachesDepuisTexteJson('{"id": "t1"}'),
-          throwsFormatException);
+      expect(
+        () => tachesDepuisTexteJson('{"id": "t1"}'),
+        throwsFormatException,
+      );
     });
 
     test('rejette un élément qui n\'est pas un objet', () {
@@ -166,9 +188,11 @@ void main() {
 
     test('rejette une tâche invalide dans la liste', () {
       expect(
-              () => tachesDepuisTexteJson(
-              '[{"id": "t1", "title": "A", "priority": "urgent", "done": true}]'),
-          throwsFormatException);
+        () => tachesDepuisTexteJson(
+          '[{"id": "t1", "title": "A", "priority": "urgent", "done": true}]',
+        ),
+        throwsFormatException,
+      );
     });
   });
 }

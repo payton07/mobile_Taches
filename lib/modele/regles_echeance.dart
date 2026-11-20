@@ -10,7 +10,7 @@ String libelleEcheance(Echeance echeance) => switch (echeance) {
   SansEcheance() => 'sans échéance',
   EcheanceDate(:final jour, :final mois) => 'pour le $jour/$mois',
   EcheanceHebdomadaire(:final jourSemaine) =>
-  'chaque ${_nomsJours[jourSemaine - DateTime.monday]}',
+    'chaque ${_nomsJours[jourSemaine - DateTime.monday]}',
 };
 
 /// Indexés de 0 (lundi) à 6 (dimanche).
@@ -30,9 +30,11 @@ const _nomsJours = [
 bool estEnRetard(Tache tache, {required DateTime aujourdhui}) {
   if (tache.faite) return false;
   return switch (tache.echeance) {
-    EcheanceDate(:final annee, :final mois, :final jour) =>
-        _jour(annee, mois, jour).isBefore(
-            _jour(aujourdhui.year, aujourdhui.month, aujourdhui.day)),
+    EcheanceDate(:final annee, :final mois, :final jour) => _jour(
+      annee,
+      mois,
+      jour,
+    ).isBefore(_jour(aujourdhui.year, aujourdhui.month, aujourdhui.day)),
     SansEcheance() || EcheanceHebdomadaire() => false,
   };
 }

@@ -8,21 +8,22 @@ final aujourdhui = DateTime(2026, 11, 18, 15);
 
 /// Affiche une tuile pour [tache], avec des callbacks facultatifs.
 Future<void> afficherTuile(
-    WidgetTester tester,
-    Tache tache, {
-      VoidCallback? surBascule,
-      VoidCallback? surOuverture,
-    }) =>
-    tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: TuileTache(
-          tache: tache,
-          aujourdhui: aujourdhui,
-          surBascule: surBascule ?? () {},
-          surOuverture: surOuverture ?? () {},
-        ),
+  WidgetTester tester,
+  Tache tache, {
+  VoidCallback? surBascule,
+  VoidCallback? surOuverture,
+}) => tester.pumpWidget(
+  MaterialApp(
+    home: Scaffold(
+      body: TuileTache(
+        tache: tache,
+        aujourdhui: aujourdhui,
+        surBascule: surBascule ?? () {},
+        surOuverture: surOuverture ?? () {},
       ),
-    ));
+    ),
+  ),
+);
 
 /// Couleur du texte [texte] affiché à l'écran.
 Color? couleurDe(WidgetTester tester, String texte) =>
@@ -65,8 +66,7 @@ void main() {
     });
 
     testWidgets('une tâche faite : case cochée, titre barré', (tester) async {
-      await afficherTuile(
-          tester, Tache(id: 't1', titre: 'Lire', faite: true));
+      await afficherTuile(tester, Tache(id: 't1', titre: 'Lire', faite: true));
 
       expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
       final titre = tester.widget<Text>(find.text('Lire'));
@@ -75,107 +75,112 @@ void main() {
   });
 
   group('retard', () {
-    testWidgets('échéance passée, non faite : couleur d\'alerte',
-            (tester) async {
-          await afficherTuile(
-            tester,
-            Tache(
-                id: 't1',
-                titre: 'Lire',
-                echeance: EcheanceDate(DateTime(2026, 11, 17))),
-          );
+    testWidgets('échéance passée, non faite : couleur d\'alerte', (
+      tester,
+    ) async {
+      await afficherTuile(
+        tester,
+        Tache(
+          id: 't1',
+          titre: 'Lire',
+          echeance: EcheanceDate(DateTime(2026, 11, 17)),
+        ),
+      );
 
-          expect(couleurDe(tester, 'pour le 17/11'), couleurAlerte(tester));
-        });
+      expect(couleurDe(tester, 'pour le 17/11'), couleurAlerte(tester));
+    });
 
     testWidgets('échéance aujourd\'hui : pas d\'alerte', (tester) async {
       await afficherTuile(
         tester,
         Tache(
-            id: 't1',
-            titre: 'Lire',
-            echeance: EcheanceDate(DateTime(2026, 11, 18))),
+          id: 't1',
+          titre: 'Lire',
+          echeance: EcheanceDate(DateTime(2026, 11, 18)),
+        ),
       );
 
-      expect(couleurDe(tester, 'pour le 18/11'),
-          isNot(couleurAlerte(tester)));
+      expect(couleurDe(tester, 'pour le 18/11'), isNot(couleurAlerte(tester)));
     });
 
-    testWidgets('échéance passée mais tâche faite : pas d\'alerte',
-            (tester) async {
-          await afficherTuile(
-            tester,
-            Tache(
-              id: 't1',
-              titre: 'Lire',
-              echeance: EcheanceDate(DateTime(2026, 11, 17)),
-              faite: true,
-            ),
-          );
+    testWidgets('échéance passée mais tâche faite : pas d\'alerte', (
+      tester,
+    ) async {
+      await afficherTuile(
+        tester,
+        Tache(
+          id: 't1',
+          titre: 'Lire',
+          echeance: EcheanceDate(DateTime(2026, 11, 17)),
+          faite: true,
+        ),
+      );
 
-          expect(couleurDe(tester, 'pour le 17/11'),
-              isNot(couleurAlerte(tester)));
-        });
+      expect(couleurDe(tester, 'pour le 17/11'), isNot(couleurAlerte(tester)));
+    });
   });
 
   group('fonctions de rappel', () {
-    testWidgets('toucher la case appelle surBascule, pas surOuverture',
-            (tester) async {
-          var bascules = 0;
-          var ouvertures = 0;
-          await afficherTuile(
-            tester,
-            Tache(id: 't1', titre: 'Lire'),
-            surBascule: () => bascules++,
-            surOuverture: () => ouvertures++,
-          );
+    testWidgets('toucher la case appelle surBascule, pas surOuverture', (
+      tester,
+    ) async {
+      var bascules = 0;
+      var ouvertures = 0;
+      await afficherTuile(
+        tester,
+        Tache(id: 't1', titre: 'Lire'),
+        surBascule: () => bascules++,
+        surOuverture: () => ouvertures++,
+      );
 
-          await tester.tap(find.byType(Checkbox));
+      await tester.tap(find.byType(Checkbox));
 
-          expect(bascules, 1);
-          expect(ouvertures, 0);
-        });
+      expect(bascules, 1);
+      expect(ouvertures, 0);
+    });
 
-    testWidgets('toucher le titre appelle surOuverture, pas surBascule',
-            (tester) async {
-          var bascules = 0;
-          var ouvertures = 0;
-          await afficherTuile(
-            tester,
-            Tache(id: 't1', titre: 'Lire'),
-            surBascule: () => bascules++,
-            surOuverture: () => ouvertures++,
-          );
+    testWidgets('toucher le titre appelle surOuverture, pas surBascule', (
+      tester,
+    ) async {
+      var bascules = 0;
+      var ouvertures = 0;
+      await afficherTuile(
+        tester,
+        Tache(id: 't1', titre: 'Lire'),
+        surBascule: () => bascules++,
+        surOuverture: () => ouvertures++,
+      );
 
-          await tester.tap(find.text('Lire'));
+      await tester.tap(find.text('Lire'));
 
-          expect(ouvertures, 1);
-          expect(bascules, 0);
-        });
+      expect(ouvertures, 1);
+      expect(bascules, 0);
+    });
   });
 
   group('mise en page', () {
-    testWidgets('un titre très long tient sur une ligne, terminé par « … »',
-            (tester) async {
-          tester.view.physicalSize = const Size(360, 640);
-          tester.view.devicePixelRatio = 1;
-          addTearDown(tester.view.reset);
-          final titreLong = 'Un titre vraiment très long ' * 10;
+    testWidgets('un titre très long tient sur une ligne, terminé par « … »', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final titreLong = 'Un titre vraiment très long ' * 10;
 
-          await afficherTuile(
-            tester,
-            Tache(
-              id: 't1',
-              titre: titreLong,
-              priorite: Priorite.normale,
-              echeance: EcheanceHebdomadaire(DateTime.wednesday),
-            ),
-          );
+      await afficherTuile(
+        tester,
+        Tache(
+          id: 't1',
+          titre: titreLong,
+          priorite: Priorite.normale,
+          echeance: EcheanceHebdomadaire(DateTime.wednesday),
+        ),
+      );
 
-          final titre = tester.widget<Text>(find.text(titreLong));
-          expect(titre.maxLines, 1);
-          expect(titre.overflow, TextOverflow.ellipsis);
-          expect(tester.takeException(), isNull); // aucun débordement
-        });
+      final titre = tester.widget<Text>(find.text(titreLong));
+      expect(titre.maxLines, 1);
+      expect(titre.overflow, TextOverflow.ellipsis);
+      expect(tester.takeException(), isNull); // aucun débordement
+    });
   });
 }

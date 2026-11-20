@@ -23,6 +23,13 @@ class _EcranListeState extends State<EcranListe> {
   /// Au-delà, le contenu reste centré au lieu de s'étirer (grands écrans).
   static const _largeurMax = 720.0;
 
+  /// Au-delà de cette largeur, la liste et le détail s'affichent côte à
+  /// côte (bonus G4) ; en dessous, le détail s'ouvre par navigation (D1).
+  static const _largeurCoteACote = 840.0;
+
+  /// Largeur de la colonne de liste en mode côte à côte.
+  static const _largeurColonneListe = 400.0;
+
   /// Toutes les tâches, quel que soit le filtre.
   List<Tache> _taches = tachesDepuisTexteJson(tachesExempleJson);
 
@@ -31,6 +38,11 @@ class _EcranListeState extends State<EcranListe> {
 
   /// Ordre d'affichage choisi (G3) ; par défaut, l'ordre d'ajout.
   Tri _tri = Tri.ajout;
+
+  /// Identifiant de la tâche affichée dans le panneau de détail (G4), ou
+  /// null. On garde l'identifiant et non la tâche : le panneau relit la
+  /// tâche dans _taches, et reste ainsi à jour après chaque remplacement.
+  String? _idSelectionne;
 
   /// Numéro du prochain identifiant « ajout-n » à essayer.
   int _numeroAjout = 1;
@@ -120,6 +132,26 @@ class _EcranListeState extends State<EcranListe> {
     _remplacer(tache.copieAvec(faite: !tache.faite));
   }
 
+  /// Mode côte à côte : affiche [tache] dans le panneau de détail.
+  void _selectionner(Tache tache) {
+    setState(() => _idSelectionne = tache.id);
+  }
+
+  /// Mode côte à côte : ouvre le formulaire de modification de [tache] et
+  /// remplace la tâche par celle qu'il renvoie, s'il en renvoie une.
+  Future<void> _modifier(Tache tache) async {
+    final modifiee = await Navigator.of(context).push<Tache>(
+      MaterialPageRoute(
+        builder: (_) => EcranFormulaire.modification(
+          tache: tache,
+          aujourdhui: widget.maintenant(),
+        ),
+      ),
+    );
+    if (modifiee == null || !mounted) return;
+    _remplacer(modifiee);
+  }
+
   /// Ouvre le détail de [tache] et applique la tâche qu'il renvoie, s'il en
   /// renvoie une. Un simple retour renvoie null : rien ne change.
   Future<void> _ouvrir(Tache tache) async {
@@ -132,6 +164,32 @@ class _EcranListeState extends State<EcranListe> {
     // Après un await, l'écran a pu être retiré : plus de setState possible.
     if (modifiee == null || !mounted) return;
     _remplacer(modifiee);
+  }
+
+  /// Panneau de droite du mode côte à côte : le détail de la tâche
+  /// sélectionnée, ou une invitation à en choisir une. Une tâche supprimée
+  /// n'est plus trouvée : le panneau revient à l'invitation.
+  Widget _panneauDetail(DateTime aujourdhui) {
+    final selection = _taches.where((t) => t.id == _idSelectionne).firstOrNull;
+    if (selection == null) {
+      return const _MessageVide(
+        texte: 'Sélectionnez une tâche pour afficher son détail',
+        icone: Icons.touch_app_outlined,
+      );
+    }
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: _largeurMax),
+        child: ContenuDetail(
+          // Clé par tâche : changer de sélection repart d'un défilement neuf.
+          key: ValueKey(selection.id),
+          tache: selection,
+          aujourdhui: aujourdhui,
+          surChangement: _remplacer,
+          surModification: () => _modifier(selection),
+        ),
+      ),
+    );
   }
 
   @override
@@ -163,12 +221,12 @@ class _EcranListeState extends State<EcranListe> {
         title: const Text('Mes tâches'),
         actions: [MenuTri(tri: _tri, surChangement: _changerTri)],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: _largeurMax),
+      body: LayoutBuilder(
+        builder: (context, contraintes) {
+          final coteACote = contraintes.maxWidth > _largeurCoteACote;
           // En-tête fixe (compteur, filtre) puis liste qui défile :
           // Expanded donne à la ListView une hauteur bornée, l'espace restant.
-          child: Column(
+          final colonneListe = Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               CompteurTaches(faites: faites, total: total),
@@ -194,15 +252,35 @@ class _EcranListeState extends State<EcranListe> {
                                   tache: tache,
                                   aujourdhui: aujourdhui,
                                   surBascule: () => _basculer(tache),
-                                  surOuverture: () => _ouvrir(tache),
+                                  surOuverture: () => coteACote
+                                      ? _selectionner(tache)
+                                      : _ouvrir(tache),
+                                  selectionnee:
+                                      coteACote && tache.id == _idSelectionne,
                                 ),
                               ),
                             },
                       ),
               ),
             ],
-          ),
-        ),
+          );
+          if (!coteACote) {
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: _largeurMax),
+                child: colonneListe,
+              ),
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(width: _largeurColonneListe, child: colonneListe),
+              const VerticalDivider(width: 1),
+              Expanded(child: _panneauDetail(aujourdhui)),
+            ],
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _ajouter,
@@ -252,11 +330,13 @@ class _FondSuppression extends StatelessWidget {
   }
 }
 
-/// Message centré qui remplace la liste quand le filtre ne retient rien.
+/// Message centré : remplace la liste quand le filtre ne retient rien, ou
+/// le détail quand aucune tâche n'est sélectionnée.
 class _MessageVide extends StatelessWidget {
-  const _MessageVide({required this.texte});
+  const _MessageVide({required this.texte, this.icone = Icons.inbox_outlined});
 
   final String texte;
+  final IconData icone;
 
   @override
   Widget build(BuildContext context) {
@@ -268,7 +348,7 @@ class _MessageVide extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.inbox_outlined, size: 48, color: couleurs.outline),
+            Icon(icone, size: 48, color: couleurs.outline),
             const SizedBox(height: 12),
             Text(
               texte,

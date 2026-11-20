@@ -303,7 +303,9 @@ void main() {
     testWidgets('sur grand écran, le contenu ne dépasse pas 720 pixels', (
       tester,
     ) async {
-      fixerLargeur(tester, 1280);
+      // 800 pixels : plus large que 720, mais sous le seuil du côte à côte
+      // (G4), au-delà duquel la liste a sa propre colonne.
+      fixerLargeur(tester, 800);
       await afficherEcran(tester);
 
       expect(tester.getSize(find.byType(ListView)).width, 720);
@@ -769,6 +771,120 @@ void main() {
         'Renouveler le passeport',
       ]);
       expect(find.text('En retard (1)'), findsNothing);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // G4 : mise en page adaptative
+  // -------------------------------------------------------------------------
+  group('G4 : mise en page adaptative', () {
+    testWidgets('au-delà de 840 pixels, liste et détail côte à côte', (
+      tester,
+    ) async {
+      fixerLargeur(tester, 1280);
+      await afficherEcran(tester);
+      expect(
+        find.text('Sélectionnez une tâche pour afficher son détail'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+
+      // Pas de navigation : la liste reste affichée, le détail à sa droite.
+      expect(find.byType(EcranDetail), findsNothing);
+      expect(find.byType(ContenuDetail), findsOneWidget);
+      expect(find.text('records, patterns, classes scellées'), findsOneWidget);
+      expect(find.text('5 à faire'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byType(ContenuDetail)).dx,
+        greaterThan(tester.getTopRight(find.byType(TuileTache).first).dx),
+      );
+      expect(
+        tester.widget<TuileTache>(find.byType(TuileTache).at(1)).selectionnee,
+        isTrue,
+      );
+    });
+
+    testWidgets('à 840 pixels, le détail s\'ouvre encore par navigation', (
+      tester,
+    ) async {
+      fixerLargeur(tester, 840);
+      await afficherEcran(tester);
+
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EcranDetail), findsOneWidget);
+    });
+
+    testWidgets('« Marquer comme faite » met à jour la liste et le panneau', (
+      tester,
+    ) async {
+      fixerLargeur(tester, 1280);
+      await afficherEcran(tester);
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Marquer comme faite'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('4 à faire'), findsOneWidget);
+      expect(tester.widget<Checkbox>(caseDe('Relire le CM 01')).value, isTrue);
+      // Le panneau relit la tâche : il propose maintenant l'action inverse.
+      expect(find.text('Marquer à faire'), findsOneWidget);
+    });
+
+    testWidgets('« Modifier » depuis le panneau remplace la tâche', (
+      tester,
+    ) async {
+      fixerLargeur(tester, 1280);
+      await afficherEcran(tester);
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Modifier'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Relire le CM 01'),
+        'Relire le CM 02',
+      );
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Relire le CM 01'), findsNothing);
+      // Une fois dans la liste, une fois en titre du panneau.
+      expect(find.text('Relire le CM 02'), findsNWidgets(2));
+    });
+
+    testWidgets('supprimer la tâche sélectionnée vide le panneau', (
+      tester,
+    ) async {
+      fixerLargeur(tester, 1280);
+      await afficherEcran(tester);
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(TuileTache).at(1), const Offset(-600, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ContenuDetail), findsNothing);
+      expect(
+        find.text('Sélectionnez une tâche pour afficher son détail'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('aucun débordement côte à côte, à 841 et 1280 pixels', (
+      tester,
+    ) async {
+      for (final largeur in [841.0, 1280.0]) {
+        fixerLargeur(tester, largeur);
+        await afficherEcran(tester);
+        await tester.tap(find.byType(TuileTache).at(1));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: '$largeur');
+      }
     });
   });
 }

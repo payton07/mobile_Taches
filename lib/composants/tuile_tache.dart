@@ -17,6 +17,7 @@ class TuileTache extends StatelessWidget {
     required this.aujourdhui,
     required this.surBascule,
     required this.surOuverture,
+    this.selectionnee = false,
   });
 
   final Tache tache;
@@ -30,6 +31,9 @@ class TuileTache extends StatelessWidget {
   /// Appelée quand l'utilisateur touche la tuile pour ouvrir la tâche.
   final VoidCallback surOuverture;
 
+  /// Vrai si la tâche est celle affichée dans le panneau de détail (G4).
+  final bool selectionnee;
+
   @override
   Widget build(BuildContext context) {
     final couleurs = Theme.of(context).colorScheme;
@@ -38,8 +42,10 @@ class TuileTache extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      color: selectionnee ? couleurs.secondaryContainer : null,
       child: ListTile(
         onTap: surOuverture,
+        selected: selectionnee,
         leading: Checkbox(value: tache.faite, onChanged: (_) => surBascule()),
         title: Text(
           tache.titre,

@@ -303,7 +303,9 @@ void main() {
     testWidgets('sur grand écran, le contenu ne dépasse pas 720 pixels', (
       tester,
     ) async {
-      fixerLargeur(tester, 1280);
+      // 800 pixels : plus large que 720, mais sous le seuil du côte à côte
+      // (G4), au-delà duquel la liste a sa propre colonne.
+      fixerLargeur(tester, 800);
       await afficherEcran(tester);
 
       expect(tester.getSize(find.byType(ListView)).width, 720);
@@ -514,6 +516,375 @@ void main() {
       expect(find.text('6 à faire'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('Rendre le TP'), 100);
       expect(find.text('pour le 25/11'), findsOneWidget);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // G1 : modifier une tâche depuis le détail
+  // -------------------------------------------------------------------------
+  group('G1 : modifier une tâche', () {
+    testWidgets('« Modifier » remplace la tâche à sa place dans la liste', (
+      tester,
+    ) async {
+      await afficherEcran(tester);
+      final positionAvant = tester.getTopLeft(find.text('Relire le CM 01'));
+
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Modifier'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Relire le CM 01'),
+        'Relire le CM 02',
+      );
+      await tester.ensureVisible(find.text('Enregistrer'));
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EcranFormulaire), findsNothing);
+      expect(find.byType(EcranDetail), findsNothing);
+      expect(find.text('Relire le CM 01'), findsNothing);
+      // Même tâche (même identifiant) : même place, compteur inchangé.
+      expect(tester.getTopLeft(find.text('Relire le CM 02')), positionAvant);
+      expect(find.text('5 à faire'), findsOneWidget);
+      expect(find.text('1/6 faite'), findsOneWidget);
+    });
+
+    testWidgets('abandonner la modification ne change rien', (tester) async {
+      await afficherEcran(tester);
+
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Modifier'));
+      await tester.pumpAndSettle();
+      await tester.pageBack(); // ferme le formulaire
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EcranDetail), findsOneWidget);
+      await tester.pageBack(); // ferme le détail
+      await tester.pumpAndSettle();
+      expect(find.text('Relire le CM 01'), findsOneWidget);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // G2 : supprimer, avec annulation
+  // -------------------------------------------------------------------------
+  group('G2 : supprimer, avec annulation', () {
+    /// Fait glisser vers la gauche la tuile qui affiche [titre].
+    Future<void> glisser(WidgetTester tester, String titre) async {
+      await tester.drag(find.text(titre), const Offset(-600, 0));
+      await tester.pumpAndSettle();
+    }
+
+    /// Titres affichés, dans l'ordre de la liste.
+    List<String> titres(WidgetTester tester) => [
+      for (final tuile in tester.widgetList<TuileTache>(
+        find.byType(TuileTache),
+      ))
+        tuile.tache.titre,
+    ];
+
+    testWidgets('glisser une tâche la supprime et met à jour le compteur', (
+      tester,
+    ) async {
+      await afficherEcran(tester);
+
+      await glisser(tester, 'Relire le CM 01');
+
+      expect(find.text('Relire le CM 01'), findsNothing);
+      expect(find.text('4 à faire'), findsOneWidget);
+      expect(find.text('1/5 faite'), findsOneWidget);
+      expect(find.text('« Relire le CM 01 » supprimée'), findsOneWidget);
+    });
+
+    testWidgets('« Annuler » remet la tâche à sa place', (tester) async {
+      await afficherEcran(tester);
+      final ordreAvant = titres(tester);
+
+      await glisser(tester, 'Relire le CM 01');
+      await tester.tap(find.text('Annuler'));
+      await tester.pumpAndSettle();
+
+      expect(titres(tester), ordreAvant);
+      expect(find.text('5 à faire'), findsOneWidget);
+    });
+
+    testWidgets('avec un filtre actif, l\'annulation rend sa place dans la '
+        'liste complète', (tester) async {
+      await afficherEcran(tester);
+      final ordreAvant = titres(tester);
+
+      await choisirFiltre(tester, 'À faire');
+      await glisser(tester, 'Faire les courses');
+      await tester.tap(find.text('Annuler'));
+      await tester.pumpAndSettle();
+      await choisirFiltre(tester, 'Toutes');
+
+      expect(titres(tester), ordreAvant);
+    });
+
+    testWidgets('supprimer la seule tâche faite affiche le message vide', (
+      tester,
+    ) async {
+      await afficherEcran(tester);
+      await choisirFiltre(tester, 'Faites');
+
+      await glisser(tester, 'Installer Flutter');
+
+      expect(find.text('Aucune tâche faite'), findsOneWidget);
+      expect(find.text('5 à faire'), findsOneWidget);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // G3 : trier et regrouper
+  // -------------------------------------------------------------------------
+  group('G3 : trier et regrouper', () {
+    /// Choisit [libelle] dans le menu « Trier » de la barre d'application.
+    Future<void> trierPar(WidgetTester tester, String libelle) async {
+      await tester.tap(find.byTooltip('Trier'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(libelle).last);
+      await tester.pumpAndSettle();
+    }
+
+    /// En-têtes et titres affichés, de haut en bas.
+    List<String> lignes(WidgetTester tester) {
+      final elements = <(double, String)>[
+        for (final element in find.byType(EnteteGroupe).evaluate())
+          (
+            tester.getTopLeft(find.byWidget(element.widget)).dy,
+            '# ${(element.widget as EnteteGroupe).libelle}',
+          ),
+        for (final element in find.byType(TuileTache).evaluate())
+          (
+            tester.getTopLeft(find.byWidget(element.widget)).dy,
+            (element.widget as TuileTache).tache.titre,
+          ),
+      ]..sort((a, b) => a.$1.compareTo(b.$1));
+      return [for (final (_, texte) in elements) texte];
+    }
+
+    /// Écran assez haut pour voir toutes les lignes sans défiler.
+    void grandEcran(WidgetTester tester) {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+    }
+
+    testWidgets('par défaut, l\'ordre d\'ajout sans en-têtes', (tester) async {
+      grandEcran(tester);
+      await afficherEcran(tester);
+
+      expect(lignes(tester), [
+        'Installer Flutter',
+        'Relire le CM 01',
+        'Faire les courses',
+        'Appeler le dentiste',
+        'Renouveler le passeport',
+        'Rendre la convention de stage',
+      ]);
+    });
+
+    testWidgets('tri par priorité', (tester) async {
+      grandEcran(tester);
+      await afficherEcran(tester);
+
+      await trierPar(tester, 'Priorité');
+
+      expect(lignes(tester), [
+        'Installer Flutter', // haute
+        'Renouveler le passeport', // haute
+        'Appeler le dentiste', // normale
+        'Relire le CM 01',
+        'Rendre la convention de stage',
+        'Faire les courses', // basse
+      ]);
+    });
+
+    testWidgets('tri par titre', (tester) async {
+      grandEcran(tester);
+      await afficherEcran(tester);
+
+      await trierPar(tester, 'Titre');
+
+      expect(lignes(tester), [
+        'Appeler le dentiste',
+        'Faire les courses',
+        'Installer Flutter',
+        'Relire le CM 01',
+        'Rendre la convention de stage',
+        'Renouveler le passeport',
+      ]);
+    });
+
+    testWidgets('tri par échéance : regroupé sous des en-têtes', (
+      tester,
+    ) async {
+      grandEcran(tester);
+      await afficherEcran(tester);
+
+      await trierPar(tester, 'Échéance');
+
+      expect(lignes(tester), [
+        '# En retard',
+        'Rendre la convention de stage', // 2/11, le 18/11
+        '# Datées',
+        'Appeler le dentiste', // 20/11
+        'Renouveler le passeport', // 15/1
+        '# Sans échéance',
+        'Faire les courses',
+        'Installer Flutter',
+        'Relire le CM 01',
+      ]);
+      expect(find.text('En retard (1)'), findsOneWidget);
+      expect(find.text('Sans échéance (3)'), findsOneWidget);
+    });
+
+    testWidgets('le tri se combine au filtre et ne change pas le compteur', (
+      tester,
+    ) async {
+      grandEcran(tester);
+      await afficherEcran(tester);
+
+      await trierPar(tester, 'Échéance');
+      await choisirFiltre(tester, 'Faites');
+
+      expect(lignes(tester), ['# Sans échéance', 'Installer Flutter']);
+      expect(find.text('5 à faire'), findsOneWidget);
+    });
+
+    testWidgets('cocher une tâche la fait changer de groupe', (tester) async {
+      grandEcran(tester);
+      await afficherEcran(tester);
+      await trierPar(tester, 'Échéance');
+
+      await tester.tap(caseDe('Rendre la convention de stage'));
+      await tester.pump();
+
+      // Faite, elle n'est plus en retard : groupe « Datées », par date.
+      expect(lignes(tester).take(4), [
+        '# Datées',
+        'Rendre la convention de stage',
+        'Appeler le dentiste',
+        'Renouveler le passeport',
+      ]);
+      expect(find.text('En retard (1)'), findsNothing);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // G4 : mise en page adaptative
+  // -------------------------------------------------------------------------
+  group('G4 : mise en page adaptative', () {
+    testWidgets('au-delà de 840 pixels, liste et détail côte à côte', (
+      tester,
+    ) async {
+      fixerLargeur(tester, 1280);
+      await afficherEcran(tester);
+      expect(
+        find.text('Sélectionnez une tâche pour afficher son détail'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+
+      // Pas de navigation : la liste reste affichée, le détail à sa droite.
+      expect(find.byType(EcranDetail), findsNothing);
+      expect(find.byType(ContenuDetail), findsOneWidget);
+      expect(find.text('records, patterns, classes scellées'), findsOneWidget);
+      expect(find.text('5 à faire'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byType(ContenuDetail)).dx,
+        greaterThan(tester.getTopRight(find.byType(TuileTache).first).dx),
+      );
+      expect(
+        tester.widget<TuileTache>(find.byType(TuileTache).at(1)).selectionnee,
+        isTrue,
+      );
+    });
+
+    testWidgets('à 840 pixels, le détail s\'ouvre encore par navigation', (
+      tester,
+    ) async {
+      fixerLargeur(tester, 840);
+      await afficherEcran(tester);
+
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EcranDetail), findsOneWidget);
+    });
+
+    testWidgets('« Marquer comme faite » met à jour la liste et le panneau', (
+      tester,
+    ) async {
+      fixerLargeur(tester, 1280);
+      await afficherEcran(tester);
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Marquer comme faite'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('4 à faire'), findsOneWidget);
+      expect(tester.widget<Checkbox>(caseDe('Relire le CM 01')).value, isTrue);
+      // Le panneau relit la tâche : il propose maintenant l'action inverse.
+      expect(find.text('Marquer à faire'), findsOneWidget);
+    });
+
+    testWidgets('« Modifier » depuis le panneau remplace la tâche', (
+      tester,
+    ) async {
+      fixerLargeur(tester, 1280);
+      await afficherEcran(tester);
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Modifier'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Relire le CM 01'),
+        'Relire le CM 02',
+      );
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Relire le CM 01'), findsNothing);
+      // Une fois dans la liste, une fois en titre du panneau.
+      expect(find.text('Relire le CM 02'), findsNWidgets(2));
+    });
+
+    testWidgets('supprimer la tâche sélectionnée vide le panneau', (
+      tester,
+    ) async {
+      fixerLargeur(tester, 1280);
+      await afficherEcran(tester);
+      await tester.tap(find.text('Relire le CM 01'));
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(TuileTache).at(1), const Offset(-600, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ContenuDetail), findsNothing);
+      expect(
+        find.text('Sélectionnez une tâche pour afficher son détail'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('aucun débordement côte à côte, à 841 et 1280 pixels', (
+      tester,
+    ) async {
+      for (final largeur in [841.0, 1280.0]) {
+        fixerLargeur(tester, largeur);
+        await afficherEcran(tester);
+        await tester.tap(find.byType(TuileTache).at(1));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: '$largeur');
+      }
     });
   });
 }

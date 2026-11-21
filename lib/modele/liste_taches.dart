@@ -1,5 +1,6 @@
 import 'priorite.dart';
 import 'tache.dart';
+import 'tri.dart';
 
 /// Nombre de tâches faites et nombre total ; `(faites: 0, total: 0)` pour
 /// une collection vide.
@@ -24,10 +25,4 @@ List<Tache> aFaire(
   Priorite auMoins = Priorite.basse,
 }) =>
     taches.where((tache) => !tache.faite && tache.priorite >= auMoins).toList()
-      ..sort(_parUrgencePuisTitre);
-
-/// Priorité décroissante, puis titre croissant.
-int _parUrgencePuisTitre(Tache a, Tache b) {
-  final parPriorite = b.priorite.compareTo(a.priorite);
-  return parPriorite != 0 ? parPriorite : a.titre.compareTo(b.titre);
-}
+      ..sort(comparerParUrgence);

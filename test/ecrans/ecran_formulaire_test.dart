@@ -137,7 +137,7 @@ void main() {
     expect(calendrier.initialDate, DateTime(2026, 11, 25));
   });
 
-  testWidgets('« Retirer la date » revient à « sans échéance »', (
+  testWidgets("« Retirer l'échéance » revient à « sans échéance »", (
     tester,
   ) async {
     await ouvrirFormulaire(tester, (_) {});
@@ -147,11 +147,11 @@ void main() {
     await tester.tap(find.text('25'));
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Retirer la date'));
+    await tester.tap(find.text("Retirer l'échéance"));
     await tester.pump();
 
     expect(find.text('sans échéance'), findsOneWidget);
-    expect(find.text('Retirer la date'), findsNothing);
+    expect(find.text("Retirer l'échéance"), findsNothing);
   });
 
   testWidgets('un titre vide est refusé et le formulaire reste ouvert', (
@@ -313,6 +313,143 @@ void main() {
 
       await enregistrer(tester);
       expect(recue?.titre, 'Corrigé');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // G1 : modifier une tâche (même formulaire, même identifiant)
+  // -------------------------------------------------------------------------
+  group('G1 : modifier une tâche', () {
+    /// Ouvre le formulaire en modification de [tache] depuis un écran hôte.
+    Future<void> ouvrirModification(
+      WidgetTester tester,
+      Tache tache,
+      void Function(Tache?) recevoir,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () async {
+                  recevoir(
+                    await Navigator.of(context).push<Tache>(
+                      MaterialPageRoute(
+                        builder: (_) => EcranFormulaire.modification(
+                          tache: tache,
+                          aujourdhui: aujourdhui,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Ouvrir'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Ouvrir'));
+      await tester.pumpAndSettle();
+    }
+
+    final existante = Tache(
+      id: 't9',
+      titre: 'Rapport',
+      priorite: Priorite.haute,
+      echeance: EcheanceDate(DateTime(2026, 12, 1)),
+      note: 'brouillon',
+      faite: true,
+    );
+
+    testWidgets('le formulaire est pré-rempli avec la tâche', (tester) async {
+      await ouvrirModification(tester, existante, (_) {});
+
+      expect(find.text('Modifier la tâche'), findsOneWidget);
+      expect(find.widgetWithText(TextFormField, 'Rapport'), findsOneWidget);
+      expect(find.widgetWithText(TextFormField, 'brouillon'), findsOneWidget);
+      expect(find.text('pour le 1/12'), findsOneWidget);
+      expect(
+        tester
+            .widget<SegmentedButton<Priorite>>(
+              find.byType(SegmentedButton<Priorite>),
+            )
+            .selected,
+        {Priorite.haute},
+      );
+    });
+
+    testWidgets('enregistrer garde l\'identifiant et l\'état de la tâche', (
+      tester,
+    ) async {
+      Tache? recue;
+      await ouvrirModification(tester, existante, (tache) => recue = tache);
+
+      await tester.enterText(champ('Titre'), 'Rapport final');
+      await tester.tap(find.text('Normale'));
+      await tester.ensureVisible(find.text('Enregistrer'));
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+
+      expect(
+        recue,
+        existante.copieAvec(titre: 'Rapport final', priorite: Priorite.normale),
+      );
+    });
+
+    testWidgets('une échéance déjà passée laissée telle quelle est acceptée', (
+      tester,
+    ) async {
+      final enRetard = Tache(
+        id: 't6',
+        titre: 'Rendre la convention',
+        echeance: EcheanceDate(DateTime(2026, 11, 2)),
+      );
+      Tache? recue;
+      await ouvrirModification(tester, enRetard, (tache) => recue = tache);
+
+      await tester.enterText(champ('Titre'), 'Rendre la convention signée');
+      await tester.ensureVisible(find.text('Enregistrer'));
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+
+      expect(recue?.titre, 'Rendre la convention signée');
+      expect(recue?.echeance, enRetard.echeance);
+    });
+
+    testWidgets('les règles de E2 s\'appliquent aussi à la modification', (
+      tester,
+    ) async {
+      var ferme = false;
+      await ouvrirModification(tester, existante, (_) => ferme = true);
+
+      await tester.enterText(champ('Titre'), '   ');
+      await tester.ensureVisible(find.text('Enregistrer'));
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Le titre est obligatoire'), findsOneWidget);
+      expect(ferme, isFalse);
+    });
+
+    testWidgets('une échéance hebdomadaire s\'affiche et peut être retirée', (
+      tester,
+    ) async {
+      Tache? recue;
+      await ouvrirModification(
+        tester,
+        Tache(id: 't8', titre: 'Sport', echeance: EcheanceHebdomadaire(5)),
+        (tache) => recue = tache,
+      );
+
+      expect(find.text('chaque vendredi'), findsOneWidget);
+      await tester.tap(find.text("Retirer l'échéance"));
+      await tester.pump();
+      await tester.ensureVisible(find.text('Enregistrer'));
+      await tester.tap(find.text('Enregistrer'));
+      await tester.pumpAndSettle();
+
+      expect(recue?.echeance, const SansEcheance());
     });
   });
 }

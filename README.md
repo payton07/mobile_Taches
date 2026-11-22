@@ -1,33 +1,21 @@
 # Mes tâches
 
-Gestionnaire de tâches personnel écrit en Flutter, réalisé pour le TP 1 du module HAI912I
-(« Fondamentaux de Dart et Flutter »). L'application cible le Web (Chrome) et Android.
+Gestionnaire de tâches personnel écrit en Flutter, réalisé pour le TP 1 du module HAI912I (« Fondamentaux de Dart et Flutter »). L'application cible le Web (Chrome) et Android.
 
 ## Projet
 
-« Mes tâches » affiche une liste de tâches. Chaque tâche a un titre, une priorité (basse, normale,
-haute), une échéance (aucune, une date, ou un jour de la semaine), une note facultative et un état
-(à faire ou faite). Au lancement, la liste part de quelques tâches d'exemple ; elle n'est pas
-enregistrée d'un lancement à l'autre.
+« Mes tâches » affiche une liste de tâches. Chaque tâche a un titre, une priorité (basse, normale, haute), une échéance (aucune, une date, ou un jour de la semaine), une note facultative et un état (à faire ou faite). Au lancement, la liste part de quelques tâches d'exemple ; elle n'est pas enregistrée d'un lancement à l'autre.
 
 Fonctionnalités :
 
-- **Liste** : une tuile par tâche, avec case à cocher, badge de priorité et libellé d'échéance ;
-  les tâches en retard sont signalées.
-- **Filtre et compteur** : « Toutes », « À faire », « Faites », et en tête le nombre de tâches à
-  faire avec la progression.
-- **Détail** : un écran qui montre tous les champs d'une tâche et permet de la marquer comme faite
-  ou à faire ; la liste est mise à jour au retour.
-- **Création** : un formulaire validé (titre obligatoire de 60 caractères au plus, note de 200
-  caractères au plus, échéance non antérieure à aujourd'hui), avec un message sous chaque champ
-  refusé.
-- **Mise en page** : le contenu ne dépasse pas 720 pixels de large, et un titre long ne provoque
-  aucun débordement sur un écran étroit.
-- **Bonus** : modification, suppression avec annulation, tri et regroupement, mise en page
-  adaptative (voir [Bonus](#bonus)).
+- **Liste** : une tuile par tâche, avec case à cocher, badge de priorité et libellé d'échéance ; les tâches en retard sont signalées.
+- **Filtre et compteur** : « Toutes », « À faire », « Faites », et en tête le nombre de tâches à faire avec la progression.
+- **Détail** : un écran qui montre tous les champs d'une tâche et permet de la marquer comme faite ou à faire ; la liste est mise à jour au retour.
+- **Création** : un formulaire validé (titre obligatoire de 60 caractères au plus, note de 200 caractères au plus, échéance non antérieure à aujourd'hui), avec un message sous chaque champ refusé.
+- **Mise en page** : le contenu ne dépasse pas 720 pixels de large, et un titre long ne provoque aucun débordement sur un écran étroit.
+- **Bonus** : modification, suppression avec annulation, tri et regroupement, mise en page adaptative (voir [Bonus](#bonus)).
 
-Membres du binôme : leurs noms figurent sur la page de titre du compte-rendu. Le dépôt ne contient
-volontairement aucune information personnelle.
+Membres du binôme : leurs noms figurent sur la page de titre du compte-rendu. Le dépôt ne contient volontairement aucune information personnelle.
 
 ## Architecture
 
@@ -64,8 +52,7 @@ test/
 ```
 
 Le modèle ne dépend jamais de Flutter : il se teste seul, et les écrans ne font que l'afficher.
-L'état vit dans `EcranListe` ; le détail et le formulaire renvoient leur résultat par
-`Navigator.pop`, et la liste le reporte dans son état.
+L'état vit dans `EcranListe` ; le détail et le formulaire renvoient leur résultat par `Navigator.pop`, et la liste le reporte dans son état.
 
 ## Environnement
 
@@ -90,11 +77,10 @@ Dépendances (voir `pubspec.yaml`, versions figées dans `pubspec.lock`) :
 ## Plateformes
 
 - **Web (obligatoire)** : Google Chrome, avec `flutter run -d chrome`.
-- **Android** : émulateur créé depuis le Device Manager d'Android Studio, avec
+- **Android** : émulateur Pixel 10 Pro (Android 17, API 37) créé depuis le Device Manager d'Android Studio, avec
   `flutter run -d <id>`. `flutter build apk --debug` réussit.
 
-Le code est le même pour les deux cibles : il n'utilise aucune bibliothèque propre au Web ni à
-Android.
+Le code est le même pour les deux cibles : il n'utilise aucune bibliothèque propre au Web ni à Android.
 
 ## Installation
 
@@ -120,8 +106,7 @@ flutter devices                           # repère l'identifiant de l'appareil
 flutter run -d <id>                       # Android
 ```
 
-Dans Android Studio : ouvrir le dossier par **File → Open**, choisir l'appareil dans la barre
-d'outils (« Chrome (web) » ou l'émulateur), puis **Run**.
+Dans Android Studio : ouvrir le dossier par **File → Open**, choisir l'appareil dans la barre d'outils (« Chrome (web) » ou l'émulateur), puis **Run**.
 
 Vérifier le projet :
 
@@ -133,18 +118,13 @@ flutter build web                         # doit réussir
 flutter build apk --debug                 # si la chaîne Android est installée
 ```
 
-Les tests unitaires (`test/modele/`) couvrent les règles du modèle : lecture JSON, échéances,
-retard, filtre, validation, tri. Les tests de widgets (`test/composants/`, `test/ecrans/`) couvrent
-les parcours de l'interface : cocher une tâche depuis la liste et depuis le détail, filtrer,
-créer une tâche refusée puis acceptée, titre long sur écran étroit, et chaque bonus.
+Les tests unitaires (`test/modele/`) couvrent les règles du modèle : lecture JSON, échéances, retard, filtre, validation, tri. Les tests de widgets (`test/composants/`, `test/ecrans/`) couvrent les parcours de l'interface : cocher une tâche depuis la liste et depuis le détail, filtrer, créer une tâche refusée puis acceptée, titre long sur écran étroit, et chaque bonus.
 
 ## Limites
 
 - **Pas de persistance** : les tâches reviennent aux exemples à chaque lancement.
-- **Tri par titre** : il ignore les majuscules mais pas les accents ; un titre commençant par « É »
-  est rangé après « Z ».
-- **Suppression** : seulement en faisant glisser la tuile vers la gauche ; il n'y a pas de bouton
-  de suppression dans le détail.
+- **Tri par titre** : il ignore les majuscules mais pas les accents ; un titre commençant par « É » est rangé après « Z ».
+- **Suppression** : seulement en faisant glisser la tuile vers la gauche ; il n'y a pas de bouton de suppression dans le détail.
 - **Langue** : l'interface est uniquement en français.
 
 ## Bonus
@@ -168,10 +148,9 @@ créer une tâche refusée puis acceptée, titre long sur écran étroit, et cha
 | Dépendances incohérentes après un changement de SDK         | `flutter clean`, puis `flutter pub get`                                                          |
 | `.metadata` ou `pubspec.lock` modifiés par `flutter create` | sans conséquence : c'est la trace de la version du SDK utilisée pour recréer les plateformes     |
 
-Avertissements de `flutter doctor` sur Xcode ou Visual Studio : sans importance, ces cibles ne
-sont pas utilisées.
+Avertissements de `flutter doctor` sur Xcode ou Visual Studio : sans importance, ces cibles ne sont pas utilisées.
 
 ## Liens
 
 - Dépôt Git : https://github.com/payton07/mobile_Taches
-- Vidéo de démonstration : *à compléter*
+- Vidéo de démonstration : [`video/demonstration.mp4`](video/demonstration.mp4), dans ce dépôt
